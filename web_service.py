@@ -12,7 +12,6 @@ import mimetypes
 from datetime import datetime
 from pathlib import Path
 
-import boto3
 import requests
 import fitz  # PyMuPDF
 from docx import Document
@@ -25,11 +24,7 @@ SECRET        = os.environ.get("WEBHOOK_SECRET", "")
 ANTHROPIC_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 CLAUDE_MODEL  = os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6")
 
-R2_ACCOUNT_ID      = os.environ.get("R2_ACCOUNT_ID", "")
-R2_ACCESS_KEY_ID   = os.environ.get("R2_ACCESS_KEY_ID", "")
-R2_SECRET_ACCESS_KEY = os.environ.get("R2_SECRET_ACCESS_KEY", "")
-R2_BUCKET_NAME     = os.environ.get("R2_BUCKET_NAME", "")
-R2_PUBLIC_URL      = os.environ.get("R2_PUBLIC_URL", "").rstrip("/")
+BLOB_TOKEN = os.environ.get("BLOB_READ_WRITE_TOKEN", "")
 
 BASE_DOCX = Path(__file__).parent / "templates" / "base.docx"
 
@@ -218,25 +213,23 @@ def generate_from_base(base_docx: Path, out_path: Path, fields: dict, images: di
     doc.save(str(out_path))
 
 
-# ── Cloudflare R2 上傳 ────────────────────────────────────
+# ── Vercel Blob 上傳 ──────────────────────────────────────
 
-def upload_r2(file_path: Path) -> str:
-    import uuid
-    s3 = boto3.client(
-        "s3",
-        endpoint_url=f"https://{R2_ACCOUNT_ID}.r2.cloudflarestorage.com",
-        aws_access_key_id=R2_ACCESS_KEY_ID,
-        aws_secret_access_key=R2_SECRET_ACCESS_KEY,
-        region_name="auto",
-    )
+def upload_blob(file_path: Path) -> str:
     date_prefix = datetime.now().strftime("%Y%m%d")
-    uid = str(uuid.uuid4())[:8]
-    key = f"reports/{date_prefix}/{uid}_{file_path.name}"
-    s3.upload_file(
-        str(file_path), R2_BUCKET_NAME, key,
-        ExtraArgs={"ContentType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"},
+    pathname = f"reports/{date_prefix}/{file_path.name}"
+    res = requests.put(
+        f"https://blob.vercel-storage.com/{pathname}",
+        data=file_path.read_bytes(),
+        headers={
+            "Authorization": f"Bearer {BLOB_TOKEN}",
+            "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "x-content-type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        },
+        timeout=60,
     )
-    return f"{R2_PUBLIC_URL}/{key}"
+    res.raise_for_status()
+    return res.json()["url"]
 
 
 # ── API ────────────────────────────────────────────────────
@@ -309,6 +302,6 @@ async def generate(request: Request):
             "micro2": str(micro2) if micro2 else None,
         })
 
-        report_url = upload_r2(out_path)
+        report_url = upload_blob(out_path)
 
     return JSONResponse({"success": True, "report_url": report_url})
