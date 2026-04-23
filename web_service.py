@@ -215,7 +215,7 @@ def generate_from_base(base_docx: Path, out_path: Path, fields: dict, images: di
 
 # ── Vercel Blob 上傳 ──────────────────────────────────────
 
-def upload_blob(file_path: Path) -> str:
+def upload_blob(file_path: Path, content_type: str = "application/vnd.openxmlformats-officedocument.wordprocessingml.document") -> str:
     date_prefix = datetime.now().strftime("%Y%m%d")
     pathname = f"reports/{date_prefix}/{file_path.name}"
     res = requests.put(
@@ -223,8 +223,8 @@ def upload_blob(file_path: Path) -> str:
         data=file_path.read_bytes(),
         headers={
             "Authorization": f"Bearer {BLOB_TOKEN}",
-            "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            "x-content-type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "Content-Type": content_type,
+            "x-content-type": content_type,
         },
         timeout=60,
     )
@@ -233,6 +233,27 @@ def upload_blob(file_path: Path) -> str:
 
 
 # ── API ────────────────────────────────────────────────────
+
+@app.post("/crop-xrf")
+async def crop_xrf(request: Request):
+    if request.headers.get("x-webhook-secret") != SECRET:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    body = await request.json()
+    pdf_url = body.get("pdf_url", "")
+    if not pdf_url:
+        raise HTTPException(status_code=400, detail="缺少 pdf_url")
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        tmp = Path(tmp_dir)
+        pdf_path = download(pdf_url, tmp / "xrf.pdf")
+        if not pdf_path:
+            raise HTTPException(status_code=400, detail="PDF 下載失敗")
+        xrf_png = tmp / f"xrf_chart_{datetime.now().strftime('%Y%m%d%H%M%S')}.png"
+        ok = screenshot_pdf_keyword(pdf_path, xrf_png)
+        if not ok:
+            raise HTTPException(status_code=422, detail="找不到定量結果表格，請確認 PDF 含有「定量结果」欄位")
+        chart_url = upload_blob(xrf_png, "image/png")
+    return JSONResponse({"url": chart_url})
+
 
 @app.get("/health")
 def health():
