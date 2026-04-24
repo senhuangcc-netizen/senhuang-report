@@ -69,10 +69,25 @@ def screenshot_pdf_keyword(pdf_path: Path, out_path: Path) -> bool:
             if not sigma_hits:
                 continue
             sig = min(sigma_hits, key=lambda r: abs(r.y0 - header.y0))
+            # 右邊界：3-sigma 欄右側與「処理」欄左側的中線
+            shori_hits = page.search_for("処理")
+            if shori_hits:
+                shori = min(shori_hits, key=lambda r: abs(r.y0 - header.y0))
+                right_x = (sig.x1 + shori.x0) / 2
+            else:
+                right_x = sig.x1 + 2
+            # 底部：Pb 最後一筆，否則用「定量分析-FP」為上緣，再否則用預設高度
             pb_hits = [r for r in page.search_for("Pb")
                        if r.x0 < header.x1 + 20 and r.y0 > header.y1]
-            bottom_y = max((r.y1 for r in pb_hits), default=header.y0 + 480) if pb_hits else header.y0 + 480
-            clip = fitz.Rect(header.x0, header.y0, sig.x1 + 2, bottom_y + 1)
+            if pb_hits:
+                bottom_y = max(r.y1 for r in pb_hits)
+            else:
+                fp_hits = page.search_for("定量分析-FP")
+                if fp_hits:
+                    bottom_y = min(r.y0 for r in fp_hits) - 2
+                else:
+                    bottom_y = header.y0 + 480
+            clip = fitz.Rect(header.x0, header.y0, right_x, bottom_y + 1)
             pix = page.get_pixmap(clip=clip, dpi=200)
             pix.save(str(out_path))
             return True
@@ -247,12 +262,12 @@ async def crop_xrf(request: Request):
         pdf_path = download(pdf_url, tmp / "xrf.pdf")
         if not pdf_path:
             raise HTTPException(status_code=400, detail="PDF 下載失敗")
-        xrf_png = tmp / f"xrf_chart_{datetime.now().strftime('%Y%m%d%H%M%S')}.png"
+        xrf_png = tmp / "xrf_chart.png"
         ok = screenshot_pdf_keyword(pdf_path, xrf_png)
         if not ok:
             raise HTTPException(status_code=422, detail="找不到定量結果表格，請確認 PDF 含有「定量结果」欄位")
-        chart_url = upload_blob(xrf_png, "image/png")
-    return JSONResponse({"url": chart_url})
+        img_b64 = base64.standard_b64encode(xrf_png.read_bytes()).decode()
+    return JSONResponse({"image_b64": img_b64})
 
 
 @app.get("/health")
