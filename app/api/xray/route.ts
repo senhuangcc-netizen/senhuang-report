@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { sql, ensureSchema } from '@/lib/db'
+import { syncXray } from '@/lib/sheets'
 
 export async function GET() {
   await ensureSchema()
@@ -31,5 +32,8 @@ export async function POST(req: NextRequest) {
       ${body.note || null}
     ) RETURNING id
   `
-  return NextResponse.json({ id: rows[0].id })
+  const id = rows[0].id
+  const { rows: newRows } = await sql`SELECT * FROM xray_records WHERE id = ${id}`
+  syncXray(newRows[0]) // 非阻塞
+  return NextResponse.json({ id })
 }

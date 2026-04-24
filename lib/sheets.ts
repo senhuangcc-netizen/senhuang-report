@@ -7,10 +7,15 @@ const CARD_SHEET_ID = '1gfrwOfTNGh27LlN4Qh032eVN84rtGJGdcXKXEV3DYO0'
 
 const REPORT_HEADERS = [
   '編號', '客戶名稱', '資料夾名稱', '品項代碼', '標籤碼',
-  '鑑定卡號', '卡狀態', '建築類型', '鑑定結果', '尺寸', '重量',
+  '鑑定卡號', '卡狀態', '建檔類型', '鑑定結果', '尺寸', '重量',
   '送驗日期', '報告日期', '備註', '形制資料', '真品預設',
   'XRF PDF', 'XRF圖', 'PDF路徑', '報告路徑', '操作員', '狀態',
   '建立時間', '更新時間',
+]
+
+const XRAY_HEADERS = [
+  '編號', '客戶名稱', '條碼', '編碼', '拍攝品項', '品項備註',
+  '主體照數量', 'X光照數量', '操作員', '備註', '建立時間',
 ]
 
 let cachedToken: { token: string; expires: number } | null = null
@@ -52,7 +57,7 @@ async function getServiceAccountToken(): Promise<string> {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function reportSheetReq(method: string, path: string, body?: unknown) {
+async function sheetReq(method: string, path: string, body?: unknown) {
   const token = await getServiceAccountToken()
   const id = process.env.GOOGLE_SHEET_ID!
   const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${id}${path}`, {
@@ -61,6 +66,31 @@ async function reportSheetReq(method: string, path: string, body?: unknown) {
     body: body ? JSON.stringify(body) : undefined,
   })
   return res.json()
+}
+
+// 取得試算表所有工作表名稱，找出第一個（報告清單用）
+async function getSheetNames(): Promise<string[]> {
+  const token = await getServiceAccountToken()
+  const id = process.env.GOOGLE_SHEET_ID!
+  const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${id}?fields=sheets.properties.title`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  const data = await res.json()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (data.sheets ?? []).map((s: any) => s.properties.title as string)
+}
+
+// 確保指定工作表存在；不存在則新增
+async function ensureSheet(title: string): Promise<void> {
+  const names = await getSheetNames()
+  if (names.includes(title)) return
+  const token = await getServiceAccountToken()
+  const id = process.env.GOOGLE_SHEET_ID!
+  await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${id}:batchUpdate`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ requests: [{ addSheet: { properties: { title } } }] }),
+  })
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -94,39 +124,89 @@ function intakeToRow(intake: Record<string, any>): string[] {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+function xrayToRow(r: Record<string, any>): string[] {
+  let mainCount = 0, xrayCount = 0
+  try { mainCount = JSON.parse(r.main_photos || '[]').length } catch { /* noop */ }
+  try { xrayCount = JSON.parse(r.xray_photos || '[]').length } catch { /* noop */ }
+  return [
+    String(r.id ?? ''),
+    String(r.customer_name ?? ''),
+    String(r.barcode ?? ''),
+    String(r.xray_code ?? ''),
+    String(r.item_type ?? ''),
+    String(r.item_type_custom ?? ''),
+    String(mainCount),
+    String(xrayCount),
+    String(r.operator ?? ''),
+    String(r.note ?? ''),
+    String(r.created_at ?? ''),
+  ]
+}
+
+async function syncToSheet(
+  sheetTitle: string,
+  headers: string[],
+  rowId: string,
+  rowData: string[],
+) {
+  await ensureSheet(sheetTitle)
+
+  const data = await sheetReq('GET', `/values/${encodeURIComponent(sheetTitle)}!A:A`)
+  const values: string[][] = data.values ?? []
+
+  if (values.length === 0 || values[0]?.[0] !== headers[0]) {
+    // 初始化表頭
+    await sheetReq('PUT', `/values/${encodeURIComponent(sheetTitle)}!A1?valueInputOption=RAW`, { values: [headers] })
+    await sheetReq('POST', `/values/${encodeURIComponent(sheetTitle)}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`, {
+      values: [rowData],
+    })
+    return
+  }
+
+  const idx = values.findIndex(r => r[0] === rowId)
+  if (idx === -1) {
+    await sheetReq('POST', `/values/${encodeURIComponent(sheetTitle)}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`, {
+      values: [rowData],
+    })
+  } else {
+    await sheetReq('PUT', `/values/${encodeURIComponent(sheetTitle)}!A${idx + 1}?valueInputOption=RAW`, {
+      values: [rowData],
+    })
+  }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function syncIntake(intake: Record<string, any>) {
   if (!process.env.GOOGLE_SERVICE_ACCOUNT_KEY || !process.env.GOOGLE_SHEET_ID) {
     console.log('[sheets] skipped: env vars missing')
     return
   }
-  console.log('[sheets] sync start id=', intake.id)
+  console.log('[sheets] syncIntake start id=', intake.id)
   try {
-    const data = await reportSheetReq('GET', '/values/Sheet1!A:A')
-    const values: string[][] = data.values ?? []
+    // 取得第一個工作表名稱作為「報告清單」的 tab
+    const names = await getSheetNames()
+    const reportTab = names[0] ?? 'Sheet1'
+    console.log('[sheets] tabs=', names, 'using=', reportTab)
 
-    if (values.length === 0 || values[0]?.[0] !== '編號') {
-      await reportSheetReq('PUT', '/values/Sheet1!A1?valueInputOption=RAW', { values: [REPORT_HEADERS] })
-      await reportSheetReq('POST', '/values/Sheet1:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS', {
-        values: [intakeToRow(intake)],
-      })
-      return
-    }
-
-    const intakeId = String(intake.id)
-    const rowIndex = values.findIndex((r) => r[0] === intakeId)
-
-    if (rowIndex === -1) {
-      await reportSheetReq('POST', '/values/Sheet1:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS', {
-        values: [intakeToRow(intake)],
-      })
-    } else {
-      await reportSheetReq('PUT', `/values/Sheet1!A${rowIndex + 1}?valueInputOption=RAW`, {
-        values: [intakeToRow(intake)],
-      })
-    }
-    console.log('[sheets] sync done id=', intake.id)
+    await syncToSheet(reportTab, REPORT_HEADERS, String(intake.id), intakeToRow(intake))
+    console.log('[sheets] syncIntake done id=', intake.id)
   } catch (e) {
-    console.error('[sheets] sync error:', e)
+    console.error('[sheets] syncIntake error:', e)
+  }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function syncXray(record: Record<string, any>) {
+  if (!process.env.GOOGLE_SERVICE_ACCOUNT_KEY || !process.env.GOOGLE_SHEET_ID) {
+    console.log('[sheets] skipped: env vars missing')
+    return
+  }
+  console.log('[sheets] syncXray start id=', record.id)
+  try {
+    await syncToSheet('X光總表', XRAY_HEADERS, String(record.id), xrayToRow(record))
+    console.log('[sheets] syncXray done id=', record.id)
+  } catch (e) {
+    console.error('[sheets] syncXray error:', e)
   }
 }
 
