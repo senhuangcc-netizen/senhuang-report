@@ -256,7 +256,7 @@ export default function ScanPage() {
 
         {/* 完成 */}
         <button
-          onClick={() => router.push('/')}
+          onClick={() => { window.location.href = '/' }}
           className="w-full bg-gray-800 text-white font-bold py-3 rounded-2xl shadow-sm text-base"
         >
           完成，返回列表

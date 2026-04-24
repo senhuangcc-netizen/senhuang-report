@@ -21,9 +21,24 @@ export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([])
   const [loading,   setLoading]   = useState(true)
   const [search,    setSearch]    = useState('')
+
+  // QR modal
   const [qrOpen,    setQrOpen]    = useState(false)
   const [qrDataUrl, setQrDataUrl] = useState('')
   const qrGenerated = useRef(false)
+
+  // 刪除確認 modal
+  const [deleteTarget,  setDeleteTarget]  = useState<Customer | null>(null)
+  const [confirmInput,  setConfirmInput]  = useState('')
+  const [deleting,      setDeleting]      = useState(false)
+
+  const confirmReady = deleteTarget ? confirmInput === deleteTarget.name : false
+
+  useEffect(() => {
+    fetch('/api/customers')
+      .then(r => r.json())
+      .then(data => { setCustomers(Array.isArray(data) ? data : []); setLoading(false) })
+  }, [])
 
   const openQr = async () => {
     setQrOpen(true)
@@ -35,11 +50,15 @@ export default function CustomersPage() {
     }
   }
 
-  useEffect(() => {
-    fetch('/api/customers')
-      .then(r => r.json())
-      .then(data => { setCustomers(Array.isArray(data) ? data : []); setLoading(false) })
-  }, [])
+  const execDelete = async () => {
+    if (!deleteTarget || !confirmReady) return
+    setDeleting(true)
+    await fetch(`/api/customers/${deleteTarget.id}`, { method: 'DELETE' })
+    setCustomers(prev => prev.filter(c => c.id !== deleteTarget.id))
+    setDeleting(false)
+    setDeleteTarget(null)
+    setConfirmInput('')
+  }
 
   const filtered = customers.filter(c =>
     !search || c.name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -48,6 +67,7 @@ export default function CustomersPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+
       {/* 登記 QR Modal */}
       {qrOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
@@ -59,14 +79,50 @@ export default function CustomersPage() {
               : <div className="w-60 h-60 mx-auto bg-amber-50 rounded-xl animate-pulse" />
             }
             <div className="flex gap-2">
+              <button onClick={() => setQrOpen(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-600 text-sm rounded-xl hover:bg-gray-50">關閉</button>
+              <button onClick={() => window.print()}
+                className="flex-1 px-4 py-2 bg-amber-600 text-white text-sm rounded-xl font-medium hover:bg-amber-700">列印</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 刪除確認 Modal */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
+            <h2 className="font-bold text-base text-red-600">刪除客戶資料</h2>
+            <p className="text-sm text-gray-600">
+              即將刪除 <span className="font-semibold text-gray-900">「{deleteTarget.name}」</span> 的所有資料，此操作無法復原。
+            </p>
+            <div>
+              <p className="text-xs text-gray-500 mb-1">
+                請手動輸入客戶姓名確認：<span className="font-semibold text-gray-800">{deleteTarget.name}</span>
+              </p>
+              <input
+                type="text"
+                value={confirmInput}
+                onChange={e => setConfirmInput(e.target.value)}
+                onPaste={e => e.preventDefault()}
+                onKeyDown={e => e.key === 'Enter' && confirmReady && execDelete()}
+                placeholder={deleteTarget.name}
+                autoFocus
+                autoComplete="off"
+                className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-red-400"
+              />
+              <p className="text-xs text-gray-400 mt-1">禁止貼上，請逐字手動輸入</p>
+            </div>
+            <div className="flex gap-2">
               <button
-                onClick={() => setQrOpen(false)}
+                onClick={() => { setDeleteTarget(null); setConfirmInput('') }}
                 className="flex-1 px-4 py-2 border border-gray-300 text-gray-600 text-sm rounded-xl hover:bg-gray-50"
-              >關閉</button>
+              >取消</button>
               <button
-                onClick={() => window.print()}
-                className="flex-1 px-4 py-2 bg-amber-600 text-white text-sm rounded-xl font-medium hover:bg-amber-700"
-              >列印</button>
+                onClick={execDelete}
+                disabled={!confirmReady || deleting}
+                className="flex-1 px-4 py-2 bg-red-600 text-white text-sm rounded-xl font-medium hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed"
+              >{deleting ? '刪除中...' : '確認刪除'}</button>
             </div>
           </div>
         </div>
@@ -75,14 +131,10 @@ export default function CustomersPage() {
       <header className="bg-white border-b px-4 py-3 flex items-center gap-3 shadow-sm">
         <button onClick={() => router.push('/')} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">←</button>
         <h1 className="font-bold text-gray-900 text-lg flex-1">客戶名單</h1>
-        <button
-          onClick={openQr}
-          className="px-3 py-2 border border-gray-200 text-gray-600 text-sm rounded-xl font-medium hover:bg-gray-50 mr-1"
-        >登記QR</button>
-        <button
-          onClick={() => router.push('/customers/new')}
-          className="px-4 py-2 bg-amber-600 text-white text-sm rounded-xl font-medium hover:bg-amber-700"
-        >新增客戶</button>
+        <button onClick={openQr}
+          className="px-3 py-2 border border-gray-200 text-gray-600 text-sm rounded-xl font-medium hover:bg-gray-50 mr-1">登記QR</button>
+        <button onClick={() => router.push('/customers/new')}
+          className="px-4 py-2 bg-amber-600 text-white text-sm rounded-xl font-medium hover:bg-amber-700">新增客戶</button>
       </header>
 
       <div className="max-w-lg mx-auto p-4 space-y-3">
@@ -108,30 +160,42 @@ export default function CustomersPage() {
             let types: string[] = []
             try { types = JSON.parse(c.collection_types || '[]') } catch { /* noop */ }
             return (
-              <div
-                key={c.id}
-                className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center gap-3 cursor-pointer hover:border-amber-300 transition-colors"
-                onClick={() => router.push(`/customers/${c.id}`)}
-              >
-                <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 font-bold text-sm shrink-0">
-                  {c.name?.slice(0, 1) || '?'}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-gray-900">{c.name}{c.gender ? ` ${c.gender}` : ''}</p>
-                  <div className="flex gap-2 mt-0.5 flex-wrap">
-                    {c.phone && <span className="text-xs text-gray-400">{c.phone}</span>}
-                    {c.line_id && <span className="text-xs text-gray-400">LINE: {c.line_id}</span>}
-                    {c.address && <span className="text-xs text-gray-400">{c.address}</span>}
+              <div key={c.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 group">
+                <div
+                  className="p-4 flex items-center gap-3 cursor-pointer hover:bg-gray-50 rounded-2xl transition-colors"
+                  onClick={() => router.push(`/customers/${c.id}`)}
+                >
+                  <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 font-bold text-sm shrink-0">
+                    {c.name?.slice(0, 1) || '?'}
                   </div>
-                  {types.length > 0 && (
-                    <div className="flex gap-1 mt-1 flex-wrap">
-                      {types.map(t => (
-                        <span key={t} className="text-xs bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full border border-amber-100">{t}</span>
-                      ))}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-gray-900">{c.name}{c.gender ? ` ${c.gender}` : ''}</p>
+                    <div className="flex gap-2 mt-0.5 flex-wrap">
+                      {c.phone && <span className="text-xs text-gray-400">{c.phone}</span>}
+                      {c.line_id && <span className="text-xs text-gray-400">LINE: {c.line_id}</span>}
+                      {c.address && <span className="text-xs text-gray-400">{c.address}</span>}
                     </div>
-                  )}
+                    {types.length > 0 && (
+                      <div className="flex gap-1 mt-1 flex-wrap">
+                        {types.map(t => (
+                          <span key={t} className="text-xs bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full border border-amber-100">{t}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={e => {
+                        e.stopPropagation()
+                        setConfirmInput('')
+                        setDeleteTarget(c)
+                      }}
+                      className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-500 text-sm px-2 py-1 rounded-lg hover:bg-red-50 transition-all"
+                      title="刪除"
+                    >🗑</button>
+                    <span className="text-gray-300 text-sm">›</span>
+                  </div>
                 </div>
-                <span className="text-gray-300 text-sm shrink-0">›</span>
               </div>
             )
           })}
