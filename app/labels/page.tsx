@@ -146,6 +146,17 @@ export default function LabelsPage() {
         <div className="ml-auto flex gap-2">
           <button onClick={generate}
             className="px-3 py-1.5 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50">重新產生</button>
+          <button
+            onClick={() => {
+              const rows = [['編號', '條碼', '後三碼'], ...codes.map((c, i) => [i + 1, c, suffix(c)])]
+              const csv = rows.map(r => r.join(',')).join('\r\n')
+              const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
+              const a = document.createElement('a')
+              a.href = URL.createObjectURL(blob)
+              a.download = `labels_${codes.length}.csv`
+              a.click()
+            }}
+            className="px-3 py-1.5 border border-green-400 text-green-700 text-sm rounded-lg hover:bg-green-50">下載 CSV</button>
           <button onClick={() => window.print()}
             className="px-3 py-1.5 bg-amber-600 text-white text-sm rounded-lg hover:bg-amber-700">列印</button>
         </div>
