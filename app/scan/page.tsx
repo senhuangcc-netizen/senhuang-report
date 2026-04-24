@@ -77,6 +77,12 @@ export default function ScanPage() {
         }),
       })
       const data = await res.json()
+      if (data.duplicate) {
+        setItems(prev => prev.filter(it => it.tempId !== tempId))
+        setDupWarning(`條碼 ${barcode} 已建檔（${data.itemCode}）`)
+        setTimeout(() => setDupWarning(''), 3000)
+        return
+      }
       setItems(prev => prev.map(it =>
         it.tempId === tempId
           ? { ...it, itemCode: data.itemCode || '?', intakeId: data.id, status: 'saved' }

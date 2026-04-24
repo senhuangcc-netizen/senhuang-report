@@ -53,6 +53,7 @@ export async function ensureSchema() {
     )
   `
   await sql`ALTER TABLE intakes ADD COLUMN IF NOT EXISTS xrf_chart_url TEXT`
+  await sql`CREATE UNIQUE INDEX IF NOT EXISTS intakes_barcode_unique ON intakes (barcode) WHERE barcode IS NOT NULL`
   await sql`ALTER TABLE intakes ADD COLUMN IF NOT EXISTS case_stage TEXT DEFAULT '收件'`
   await sql`ALTER TABLE intakes ADD COLUMN IF NOT EXISTS inspection_unit TEXT`
   await sql`ALTER TABLE intakes ADD COLUMN IF NOT EXISTS photo_stages TEXT DEFAULT '[]'`

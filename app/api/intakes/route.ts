@@ -36,10 +36,25 @@ export async function POST(req: NextRequest) {
   const safeName = (body.customerName as string).replace(/[\/\\:*?"<>|]/g, '_').trim()
   const folderName = `${safeName}_${ym}`
 
+  // 重複條碼：直接回傳既有建單，不新建
+  const barcodeStr: string = body.barcode || ''
+  if (barcodeStr) {
+    const { rows: existing } = await sql`
+      SELECT id, item_code, folder_name FROM intakes WHERE barcode = ${barcodeStr} LIMIT 1
+    `
+    if (existing.length > 0) {
+      return NextResponse.json({
+        id: existing[0].id,
+        itemCode: existing[0].item_code,
+        folderPath: existing[0].folder_name,
+        duplicate: true,
+      })
+    }
+  }
+
   // 取得或分配資料夾字母
   const folderLetter = await nextItemCode(folderName)
   // 若條碼後三碼符合「1英+2數」格式（我方標籤），組合為：後三碼 + 資料夾字母（例如 K06A）
-  const barcodeStr: string = body.barcode || ''
   const labelSuffix = barcodeStr.slice(-3)
   const isLabelBarcode = barcodeStr.length >= 3 && /^[A-Z][0-9]{2}$/.test(labelSuffix)
   const autoCode = isLabelBarcode ? `${labelSuffix}${folderLetter}` : folderLetter
