@@ -62,6 +62,15 @@ export default function NewIntakePage() {
     return (MONTH_ABBR[mm] ?? '') + dd
   })
 
+  // 客戶名稱變動時自動產生第④欄序號（A-Z + 件序）
+  useEffect(() => {
+    if (!customerName.trim()) { setItemSequence(''); return }
+    fetch(`/api/next-code?customerName=${encodeURIComponent(customerName)}`)
+      .then(r => r.json())
+      .then(d => { if (d.code) setItemSequence(d.code) })
+      .catch(() => {})
+  }, [customerName])
+
   // 完整編碼（唯讀組合）
   const itemCode = [`${itemPrefix}${itemMonthDay}`, itemBracket, itemSequence].filter(Boolean).join('-')
 
@@ -570,7 +579,7 @@ export default function NewIntakePage() {
                 title="從建檔類型下拉的 [bracket] 自動生成，可手動修改"
               />
               <span className="flex items-center text-gray-400 font-mono">-</span>
-              {/* ④ 序號（手動，A-Z + 數字） */}
+              {/* ④ 序號（自動 A-Z+件序，可手動覆蓋） */}
               <input
                 type="text"
                 value={itemSequence}
@@ -578,7 +587,8 @@ export default function NewIntakePage() {
                 required
                 placeholder="K6"
                 maxLength={10}
-                className="flex-1 min-w-16 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 font-mono focus:outline-none focus:border-amber-500"
+                className="flex-1 min-w-16 border border-blue-200 rounded-xl px-3 py-2 text-sm text-gray-900 font-mono bg-blue-50 focus:outline-none focus:border-blue-500"
+                title="依客戶資料夾自動分配字母+序號，可手動覆蓋"
               />
             </div>
             {itemCode && (
