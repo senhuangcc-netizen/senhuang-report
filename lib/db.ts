@@ -57,6 +57,22 @@ export async function ensureSchema() {
   await sql`ALTER TABLE intakes ADD COLUMN IF NOT EXISTS inspection_unit TEXT`
   await sql`ALTER TABLE intakes ADD COLUMN IF NOT EXISTS photo_stages TEXT DEFAULT '[]'`
   await sql`
+    CREATE TABLE IF NOT EXISTS xray_records (
+      id SERIAL PRIMARY KEY,
+      customer_name TEXT NOT NULL,
+      barcode TEXT,
+      xray_code TEXT NOT NULL,
+      item_type TEXT NOT NULL,
+      item_type_custom TEXT,
+      main_photos TEXT DEFAULT '[]',
+      xray_photos TEXT DEFAULT '[]',
+      operator TEXT,
+      note TEXT,
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
+    )
+  `
+  await sql`
     CREATE TABLE IF NOT EXISTS folder_letters (
       folder_name TEXT PRIMARY KEY,
       letter CHAR(1) NOT NULL,

@@ -3,6 +3,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import BarcodeScanner from '@/components/BarcodeScanner'
 
+type Mode = 'intake' | 'xray'
+
 interface ScannedItem {
   tempId: number
   barcode: string
@@ -14,17 +16,22 @@ interface ScannedItem {
 export default function ScanPage() {
   const router = useRouter()
 
+  const [mode,         setMode]         = useState<Mode>('intake')
   const [customerName, setCustomerName] = useState('')
-  const [operators, setOperators] = useState<string[]>([])
-  const [operator, setOperator] = useState('')
-  const [items, setItems] = useState<ScannedItem[]>([])
-  const [scanning, setScanning] = useState(false)
-  const [manualBarcode, setManualBarcode] = useState('')
+  const [operators,    setOperators]    = useState<string[]>([])
+  const [operator,     setOperator]     = useState('')
+  const [items,        setItems]        = useState<ScannedItem[]>([])
+  const [xrayCount,    setXrayCount]    = useState(0)
+  const [scanning,     setScanning]     = useState(false)
+  const [manualBarcode,setManualBarcode]= useState('')
 
-  // 從 URL ?customer= 預填
+  // 從 URL ?customer= 和 ?mode= 預填
   useEffect(() => {
-    const name = new URLSearchParams(window.location.search).get('customer')
+    const p = new URLSearchParams(window.location.search)
+    const name = p.get('customer')
+    const m = p.get('mode')
     if (name) setCustomerName(decodeURIComponent(name))
+    if (m === 'xray') setMode('xray')
   }, [])
 
   // 載入操作人員
@@ -37,11 +44,11 @@ export default function ScanPage() {
       })
   }, [])
 
+  // 建件模式：掃描後自動建草稿
   const createDraft = useCallback(async (barcode: string) => {
     if (!customerName.trim()) return
     const tempId = Date.now() + Math.random()
     setItems(prev => [...prev, { tempId, barcode, itemCode: '…', intakeId: null, status: 'saving' }])
-
     try {
       const res = await fetch('/api/intakes', {
         method: 'POST',
@@ -68,9 +75,20 @@ export default function ScanPage() {
     }
   }, [customerName, operator])
 
+  // X光模式：掃描後跳轉到 X光照表單
+  const openXray = useCallback((barcode: string) => {
+    if (!customerName.trim()) return
+    setXrayCount(c => c + 1)
+    router.push(
+      `/xray/new?customer=${encodeURIComponent(customerName.trim())}&barcode=${encodeURIComponent(barcode)}&returnTo=/scan`
+    )
+  }, [customerName, router])
+
+  const handleScan = mode === 'xray' ? openXray : createDraft
+
   const handleManualAdd = () => {
     if (!manualBarcode.trim() || !customerName.trim()) return
-    createDraft(manualBarcode.trim())
+    handleScan(manualBarcode.trim())
     setManualBarcode('')
   }
 
@@ -80,13 +98,33 @@ export default function ScanPage() {
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b px-4 py-3 flex items-center gap-3 shadow-sm">
         <button onClick={() => router.push('/')} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">←</button>
-        <div>
-          <h1 className="font-bold text-gray-900 text-lg">批次收件掃描</h1>
-          <p className="text-xs text-gray-400">掃描條碼後自動建立草稿，之後再填寫細節</p>
+        <div className="flex-1">
+          <h1 className="font-bold text-gray-900 text-lg">掃描收件</h1>
+          <p className="text-xs text-gray-400">{mode === 'intake' ? '批次建件：掃描後自動建立草稿' : 'X光拍攝：掃描後進入X光表單'}</p>
         </div>
       </header>
 
       <div className="max-w-lg mx-auto p-4 space-y-4">
+
+        {/* 模式切換 */}
+        <div className="bg-white rounded-2xl p-1.5 shadow-sm flex gap-1.5">
+          <button
+            onClick={() => setMode('intake')}
+            className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+              mode === 'intake' ? 'bg-amber-600 text-white' : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            📦 新增建件
+          </button>
+          <button
+            onClick={() => setMode('xray')}
+            className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+              mode === 'xray' ? 'bg-purple-600 text-white' : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            🔬 拍攝X光
+          </button>
+        </div>
 
         {/* 客戶名稱 + 操作員 */}
         <div className="bg-white rounded-2xl p-4 shadow-sm space-y-3">
@@ -99,7 +137,7 @@ export default function ScanPage() {
               placeholder="輸入客戶姓名…"
             />
           </div>
-          {operators.length > 0 && (
+          {operators.length > 0 && mode === 'intake' && (
             <div>
               <label className="block text-xs text-gray-500 mb-1">操作員</label>
               <select
@@ -117,9 +155,11 @@ export default function ScanPage() {
         <button
           onClick={() => { if (customerName.trim()) setScanning(true) }}
           disabled={!customerName.trim()}
-          className="w-full bg-amber-600 text-white font-bold py-4 rounded-2xl shadow-sm disabled:opacity-40 text-base"
+          className={`w-full text-white font-bold py-4 rounded-2xl shadow-sm disabled:opacity-40 text-base ${
+            mode === 'xray' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-amber-600 hover:bg-amber-700'
+          }`}
         >
-          📷 掃描條碼
+          {mode === 'xray' ? '🔬 掃描條碼 → X光照表單' : '📷 掃描條碼'}
         </button>
 
         {/* 手動輸入 */}
@@ -138,13 +178,13 @@ export default function ScanPage() {
               disabled={!customerName.trim() || !manualBarcode.trim()}
               className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium disabled:opacity-40 hover:bg-gray-200"
             >
-              新增
+              進入
             </button>
           </div>
         </div>
 
-        {/* 掃描清單 */}
-        {items.length > 0 && (
+        {/* 建件清單 */}
+        {mode === 'intake' && items.length > 0 && (
           <div className="bg-white rounded-2xl p-4 shadow-sm">
             <p className="text-sm font-semibold text-gray-700 mb-3">
               已建立 {savedCount} 份草稿
@@ -160,8 +200,8 @@ export default function ScanPage() {
                   </div>
                   <div className="shrink-0 text-sm">
                     {it.status === 'saving' && <span className="text-gray-400">⋯</span>}
-                    {it.status === 'saved' && <span className="text-green-500">✓</span>}
-                    {it.status === 'error' && <span className="text-red-500">✕</span>}
+                    {it.status === 'saved'  && <span className="text-green-500">✓</span>}
+                    {it.status === 'error'  && <span className="text-red-500">✕</span>}
                   </div>
                 </div>
               ))}
@@ -169,21 +209,28 @@ export default function ScanPage() {
           </div>
         )}
 
-        {/* 完成按鈕 */}
+        {/* X光計數 */}
+        {mode === 'xray' && xrayCount > 0 && (
+          <div className="bg-purple-50 border border-purple-100 rounded-2xl p-4 text-center">
+            <p className="text-purple-700 font-semibold">已開啟 {xrayCount} 件X光表單</p>
+            <p className="text-purple-400 text-xs mt-1">填寫完成後會自動回到此頁</p>
+          </div>
+        )}
+
+        {/* 完成 */}
         <button
           onClick={() => router.push('/')}
           className="w-full bg-gray-800 text-white font-bold py-3 rounded-2xl shadow-sm text-base"
         >
           完成，返回列表
         </button>
-
       </div>
 
       {scanning && (
         <BarcodeScanner
-          onScan={createDraft}
+          onScan={handleScan}
           onClose={() => setScanning(false)}
-          keepOpen
+          keepOpen={mode === 'intake'}
         />
       )}
     </div>
