@@ -73,7 +73,7 @@ export default function CustomersPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-xs p-6 space-y-4 text-center">
             <h2 className="font-bold text-base text-gray-900">客戶登記 QR</h2>
-            <p className="text-xs text-gray-500">客戶掃描後進入自助填寫頁面<br />每次掃描都是全新空白表單</p>
+            <p className="text-xs text-gray-700">客戶掃描後進入自助填寫頁面<br />每次掃描都是全新空白表單</p>
             {qrDataUrl
               ? <img src={qrDataUrl} alt="QR Code" className="mx-auto rounded-xl" width={240} height={240} />
               : <div className="w-60 h-60 mx-auto bg-amber-50 rounded-xl animate-pulse" />
@@ -97,7 +97,7 @@ export default function CustomersPage() {
               即將刪除 <span className="font-semibold text-gray-900">「{deleteTarget.name}」</span> 的所有資料，此操作無法復原。
             </p>
             <div>
-              <p className="text-xs text-gray-500 mb-1">
+              <p className="text-xs text-gray-700 mb-1">
                 請手動輸入客戶姓名確認：<span className="font-semibold text-gray-800">{deleteTarget.name}</span>
               </p>
               <input
@@ -111,7 +111,7 @@ export default function CustomersPage() {
                 autoComplete="off"
                 className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-red-400"
               />
-              <p className="text-xs text-gray-400 mt-1">禁止貼上，請逐字手動輸入</p>
+              <p className="text-xs text-gray-600 mt-1">禁止貼上，請逐字手動輸入</p>
             </div>
             <div className="flex gap-2">
               <button
@@ -171,9 +171,9 @@ export default function CustomersPage() {
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-gray-900">{c.name}{c.gender ? ` ${c.gender}` : ''}</p>
                     <div className="flex gap-2 mt-0.5 flex-wrap">
-                      {c.phone && <span className="text-xs text-gray-400">{c.phone}</span>}
-                      {c.line_id && <span className="text-xs text-gray-400">LINE: {c.line_id}</span>}
-                      {c.address && <span className="text-xs text-gray-400">{c.address}</span>}
+                      {c.phone && <span className="text-xs text-gray-600">{c.phone}</span>}
+                      {c.line_id && <span className="text-xs text-gray-600">LINE: {c.line_id}</span>}
+                      {c.address && <span className="text-xs text-gray-600">{c.address}</span>}
                     </div>
                     {types.length > 0 && (
                       <div className="flex gap-1 mt-1 flex-wrap">

@@ -70,7 +70,7 @@ export default function CustomerEditPage() {
     router.push('/customers')
   }
 
-  if (loading) return <div className="min-h-screen bg-gray-50 flex items-center justify-center text-gray-400">載入中...</div>
+  if (loading) return <div className="min-h-screen bg-gray-50 flex items-center justify-center text-gray-600">載入中...</div>
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -83,7 +83,7 @@ export default function CustomerEditPage() {
 
         <div className="bg-white rounded-2xl p-4 shadow-sm space-y-3">
           <div>
-            <label className="block text-xs text-gray-500 mb-1">姓名 *</label>
+            <label className="block text-xs text-gray-700 mb-1">姓名 *</label>
             <input
               className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500"
               value={name}
@@ -93,7 +93,7 @@ export default function CustomerEditPage() {
           </div>
 
           <div>
-            <label className="block text-xs text-gray-500 mb-1">稱謂</label>
+            <label className="block text-xs text-gray-700 mb-1">稱謂</label>
             <div className="flex gap-2">
               {GENDERS.map(g => (
                 <button
@@ -114,7 +114,7 @@ export default function CustomerEditPage() {
           </div>
 
           <div>
-            <label className="block text-xs text-gray-500 mb-1">電話</label>
+            <label className="block text-xs text-gray-700 mb-1">電話</label>
             <input
               className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500"
               value={phone} onChange={e => setPhone(e.target.value)}
@@ -123,7 +123,7 @@ export default function CustomerEditPage() {
           </div>
 
           <div>
-            <label className="block text-xs text-gray-500 mb-1">LINE ID</label>
+            <label className="block text-xs text-gray-700 mb-1">LINE ID</label>
             <input
               className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500"
               value={lineId} onChange={e => setLineId(e.target.value)}
@@ -132,7 +132,7 @@ export default function CustomerEditPage() {
           </div>
 
           <div>
-            <label className="block text-xs text-gray-500 mb-1">生日</label>
+            <label className="block text-xs text-gray-700 mb-1">生日</label>
             <input
               className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500"
               value={birthday} onChange={e => setBirthday(e.target.value)}
@@ -141,7 +141,7 @@ export default function CustomerEditPage() {
           </div>
 
           <div>
-            <label className="block text-xs text-gray-500 mb-1">居住地</label>
+            <label className="block text-xs text-gray-700 mb-1">居住地</label>
             <input
               className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500"
               value={address} onChange={e => setAddress(e.target.value)}
@@ -175,7 +175,7 @@ export default function CustomerEditPage() {
         </div>
 
         <div className="bg-white rounded-2xl p-4 shadow-sm">
-          <label className="block text-xs text-gray-500 mb-1">備註</label>
+          <label className="block text-xs text-gray-700 mb-1">備註</label>
           <textarea
             className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500 resize-none"
             rows={2} value={note} onChange={e => setNote(e.target.value)}

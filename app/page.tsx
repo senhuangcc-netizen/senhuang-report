@@ -168,7 +168,7 @@ export default function HomePage() {
               autoFocus
               className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-amber-500"
             />
-            <p className="text-xs text-gray-400">建立後可批次掃描多件條碼</p>
+            <p className="text-xs text-gray-600">建立後可批次掃描多件條碼</p>
             <div className="flex gap-2">
               <button
                 onClick={() => setNewFolderOpen(false)}
@@ -201,7 +201,7 @@ export default function HomePage() {
               }
             </p>
             <div>
-              <p className="text-xs text-gray-500 mb-1">請輸入客戶名稱確認：<span className="font-semibold text-gray-800">{deleteKey}</span></p>
+              <p className="text-xs text-gray-700 mb-1">請輸入客戶名稱確認：<span className="font-semibold text-gray-800">{deleteKey}</span></p>
               <input
                 type="text"
                 value={confirmInput}
@@ -235,7 +235,7 @@ export default function HomePage() {
         <div className="flex items-center justify-between mb-2.5">
           <div>
             <h1 className="font-bold text-gray-900 text-lg">東方森煌建單系統</h1>
-            <p className="text-xs text-gray-400">Oriental Senhuang Intake System</p>
+            <p className="text-xs text-gray-600">Oriental Senhuang Intake System</p>
           </div>
           <Link href="/labels" className="px-3 py-2 border border-gray-200 text-gray-500 text-sm rounded-xl font-medium hover:bg-gray-50">
             列印標籤
@@ -322,7 +322,7 @@ export default function HomePage() {
 
         {/* 筆數 */}
         {!loading && (
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-gray-600">
             {selectedYear} 年 {selectedMonth} 月 · {customerGroups.length} 位客戶 · 共 {filtered.length} 筆
           </p>
         )}
@@ -356,7 +356,7 @@ export default function HomePage() {
                 >
                   <span className="text-base">{folderOpen ? '📂' : '📁'}</span>
                   <span className="font-semibold text-gray-900">{cname}</span>
-                  <span className="text-xs text-gray-400 ml-1">{items.length} 件</span>
+                  <span className="text-xs text-gray-600 ml-1">{items.length} 件</span>
                   {folderStage && (
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${
                       folderStage === '完成' ? 'bg-green-50 text-green-600' :
@@ -397,7 +397,7 @@ export default function HomePage() {
                             onClick={() => toggleItem(intake.id)}
                           >
                             <span className="text-gray-300 text-xs w-3 shrink-0">{itemOpen ? '▾' : '▸'}</span>
-                            <span className="font-mono text-xs text-gray-500 shrink-0">{intake.item_code}</span>
+                            <span className="font-mono text-xs text-gray-700 shrink-0">{intake.item_code}</span>
                             <span className="text-sm text-gray-800 truncate flex-1">{itemName}</span>
                             {intake.case_stage && intake.case_stage !== '收件' && (
                               <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 font-medium ${
@@ -410,7 +410,7 @@ export default function HomePage() {
                           {/* 展開後：詳情 + 操作按鈕 */}
                           {itemOpen && (
                             <div className="pl-8 pr-4 pb-3 bg-gray-50 space-y-2">
-                              <div className="flex items-center gap-2 text-xs text-gray-400 pt-1 flex-wrap">
+                              <div className="flex items-center gap-2 text-xs text-gray-600 pt-1 flex-wrap">
                                 {intake.building_type && (
                                   <span className="bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full border border-amber-100">{intake.building_type}</span>
                                 )}

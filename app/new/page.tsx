@@ -505,7 +505,7 @@ export default function NewIntakePage() {
           {/* 拍照子進度：僅在「拍照」階段展開 */}
           {caseStage === '拍照' && (
             <div className="border-t pt-3">
-              <p className="text-xs text-gray-400 mb-2">已完成的拍照項目</p>
+              <p className="text-xs text-gray-600 mb-2">已完成的拍照項目</p>
               <div className="flex gap-3">
                 {(['主體照', '顯微照', '360'] as const).map(ps => (
                   <label key={ps} className="flex items-center gap-1.5 cursor-pointer select-none">
@@ -606,7 +606,7 @@ export default function NewIntakePage() {
               </datalist>
             )}
             {customerSuggestions.length > 0 && (
-              <p className="text-xs text-gray-400 mt-1">↑ 選擇當月已有客戶可合入同一資料夾</p>
+              <p className="text-xs text-gray-600 mt-1">↑ 選擇當月已有客戶可合入同一資料夾</p>
             )}
           </div>
 
@@ -652,7 +652,7 @@ export default function NewIntakePage() {
               />
             </div>
             {itemCode && (
-              <p className="text-xs text-gray-400 mt-1 font-mono">
+              <p className="text-xs text-gray-600 mt-1 font-mono">
                 完整編碼：<span className="text-gray-600">{itemCode}</span>
               </p>
             )}
@@ -820,7 +820,7 @@ export default function NewIntakePage() {
         {/* XRF PDF */}
         <section className="bg-white rounded-2xl p-4 shadow-sm space-y-3">
           <h2 className="font-semibold text-gray-800 border-b pb-2">XRF 分析報告（PDF）</h2>
-          <p className="text-xs text-gray-400">上傳儀器產出的 XRF PDF，系統會自動截取定量結果表格嵌入鑑定報告</p>
+          <p className="text-xs text-gray-600">上傳儀器產出的 XRF PDF，系統會自動截取定量結果表格嵌入鑑定報告</p>
           <div className="flex items-center gap-3">
             <div
               onDragOver={e => { e.preventDefault(); setXrfDragging(true) }}
@@ -846,15 +846,15 @@ export default function NewIntakePage() {
                 onChange={async e => { const f = e.target.files?.[0]; if (f) await uploadXrf(f) }}
               />
               {xrfUploading ? (
-                <span className="text-sm text-gray-400">上傳中...</span>
+                <span className="text-sm text-gray-600">上傳中...</span>
               ) : xrfCropping ? (
                 <span className="text-sm text-amber-600">截取 XRF 圖表中...</span>
               ) : xrfPdfUrl ? (
                 <span className="text-sm text-green-600">{xrfChartUrl ? '✓ PDF 已上傳・圖表已截取' : '✓ PDF 已上傳（圖表截取中）'}</span>
               ) : (
                 <>
-                  <span className="text-sm text-gray-400">拖拉 PDF 至此，或點擊選擇檔案</span>
-                  <span className="text-xs text-gray-300">僅接受 .pdf 格式</span>
+                  <span className="text-sm text-gray-600">拖拉 PDF 至此，或點擊選擇檔案</span>
+                  <span className="text-xs text-gray-500">僅接受 .pdf 格式</span>
                 </>
               )}
             </div>

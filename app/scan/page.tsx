@@ -114,7 +114,7 @@ export default function ScanPage() {
         <button onClick={() => router.push('/')} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">←</button>
         <div className="flex-1">
           <h1 className="font-bold text-gray-900 text-lg">掃描收件</h1>
-          <p className="text-xs text-gray-400">{mode === 'intake' ? '批次建件：掃描後自動建立草稿' : 'X光拍攝：掃描後進入X光表單'}</p>
+          <p className="text-xs text-gray-600">{mode === 'intake' ? '批次建件：掃描後自動建立草稿' : 'X光拍攝：掃描後進入X光表單'}</p>
         </div>
       </header>
 
@@ -143,7 +143,7 @@ export default function ScanPage() {
         {/* 客戶名稱 + 操作員 */}
         <div className="bg-white rounded-2xl p-4 shadow-sm space-y-3">
           <div className="relative">
-            <label className="block text-xs text-gray-500 mb-1">客戶名稱 *</label>
+            <label className="block text-xs text-gray-700 mb-1">客戶名稱 *</label>
             <input
               className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:outline-none focus:border-amber-500"
               value={customerName}
@@ -169,7 +169,7 @@ export default function ScanPage() {
           </div>
           {operators.length > 0 && mode === 'intake' && (
             <div>
-              <label className="block text-xs text-gray-500 mb-1">操作員</label>
+              <label className="block text-xs text-gray-700 mb-1">操作員</label>
               <select
                 className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 bg-white focus:outline-none focus:border-amber-500"
                 value={operator}
@@ -201,7 +201,7 @@ export default function ScanPage() {
 
         {/* 手動輸入 */}
         <div className="bg-white rounded-2xl p-4 shadow-sm">
-          <p className="text-xs text-gray-500 mb-2">手動輸入條碼</p>
+          <p className="text-xs text-gray-700 mb-2">手動輸入條碼</p>
           <div className="flex gap-2">
             <input
               className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:outline-none focus:border-amber-500"

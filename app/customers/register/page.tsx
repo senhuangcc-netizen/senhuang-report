@@ -62,7 +62,7 @@ export default function CustomerRegisterPage() {
           <h2 className="font-semibold text-gray-800 text-sm">基本資料</h2>
 
           <div>
-            <label className="block text-xs text-gray-500 mb-1">姓名 *</label>
+            <label className="block text-xs text-gray-700 mb-1">姓名 *</label>
             <input
               className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500"
               value={name}
@@ -72,7 +72,7 @@ export default function CustomerRegisterPage() {
           </div>
 
           <div>
-            <label className="block text-xs text-gray-500 mb-1">稱謂</label>
+            <label className="block text-xs text-gray-700 mb-1">稱謂</label>
             <div className="flex gap-2">
               {GENDERS.map(g => (
                 <button
@@ -89,7 +89,7 @@ export default function CustomerRegisterPage() {
           </div>
 
           <div>
-            <label className="block text-xs text-gray-500 mb-1">電話</label>
+            <label className="block text-xs text-gray-700 mb-1">電話</label>
             <input
               className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500"
               value={phone}
@@ -100,7 +100,7 @@ export default function CustomerRegisterPage() {
           </div>
 
           <div>
-            <label className="block text-xs text-gray-500 mb-1">LINE ID</label>
+            <label className="block text-xs text-gray-700 mb-1">LINE ID</label>
             <input
               className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500"
               value={lineId}
@@ -110,7 +110,7 @@ export default function CustomerRegisterPage() {
           </div>
 
           <div>
-            <label className="block text-xs text-gray-500 mb-1">生日</label>
+            <label className="block text-xs text-gray-700 mb-1">生日</label>
             <input
               className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500"
               value={birthday}
@@ -120,7 +120,7 @@ export default function CustomerRegisterPage() {
           </div>
 
           <div>
-            <label className="block text-xs text-gray-500 mb-1">居住地</label>
+            <label className="block text-xs text-gray-700 mb-1">居住地</label>
             <input
               className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500"
               value={address}
@@ -156,7 +156,7 @@ export default function CustomerRegisterPage() {
         </div>
 
         <div className="bg-white rounded-2xl p-4 shadow-sm">
-          <label className="block text-xs text-gray-500 mb-1">備註</label>
+          <label className="block text-xs text-gray-700 mb-1">備註</label>
           <textarea
             className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500 resize-none"
             rows={2}

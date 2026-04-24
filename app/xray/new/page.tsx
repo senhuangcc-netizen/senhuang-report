@@ -104,7 +104,7 @@ export default function XrayNewPage() {
         <button onClick={() => router.back()} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">←</button>
         <div className="flex-1">
           <h1 className="font-bold text-gray-900">X光照建檔</h1>
-          {customerName && <p className="text-xs text-gray-400">{customerName}</p>}
+          {customerName && <p className="text-xs text-gray-600">{customerName}</p>}
         </div>
         {operators.length > 0 && (
           <select
@@ -125,7 +125,7 @@ export default function XrayNewPage() {
           <h2 className="font-semibold text-gray-800 border-b pb-2">基本資料</h2>
 
           <div>
-            <label className="block text-xs text-gray-500 mb-1">客戶名稱 *</label>
+            <label className="block text-xs text-gray-700 mb-1">客戶名稱 *</label>
             <input
               className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:outline-none focus:border-amber-500"
               value={customerName}
@@ -135,7 +135,7 @@ export default function XrayNewPage() {
           </div>
 
           <div>
-            <label className="block text-xs text-gray-500 mb-1">條碼（QR）</label>
+            <label className="block text-xs text-gray-700 mb-1">條碼（QR）</label>
             <input
               className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-mono text-gray-900 focus:outline-none focus:border-amber-500"
               value={barcode}
@@ -145,7 +145,7 @@ export default function XrayNewPage() {
           </div>
 
           <div>
-            <label className="block text-xs text-gray-500 mb-1">編碼（建檔日期 + QR前三碼，自動生成）</label>
+            <label className="block text-xs text-gray-700 mb-1">編碼（建檔日期 + QR前三碼，自動生成）</label>
             <input
               className="w-full border border-dashed border-gray-300 rounded-xl px-3 py-2 text-sm font-mono text-gray-600 bg-gray-50 focus:outline-none focus:border-amber-400"
               value={xrayCode}
