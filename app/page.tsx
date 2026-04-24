@@ -33,6 +33,17 @@ export default function HomePage() {
   const [openFolders, setOpenFolders] = useState<Set<string>>(new Set())
   const [openItems, setOpenItems] = useState<Set<number>>(new Set())
 
+  // 新建資料夾 Modal
+  const [newFolderOpen, setNewFolderOpen] = useState(false)
+  const [newFolderName, setNewFolderName] = useState('')
+
+  const openNewFolder = () => { setNewFolderName(''); setNewFolderOpen(true) }
+  const submitNewFolder = () => {
+    if (!newFolderName.trim()) return
+    setNewFolderOpen(false)
+    router.push(`/new?customer=${encodeURIComponent(newFolderName.trim())}`)
+  }
+
   // 刪除確認 Modal
   type DeleteTarget =
     | { type: 'folder'; customerName: string }
@@ -140,6 +151,35 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-gray-50">
 
+      {/* 新建資料夾 Modal */}
+      {newFolderOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
+            <h2 className="font-bold text-base text-gray-900">新建客戶資料夾</h2>
+            <input
+              type="text"
+              value={newFolderName}
+              onChange={e => setNewFolderName(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && submitNewFolder()}
+              placeholder="輸入客戶姓名"
+              autoFocus
+              className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-amber-500"
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={() => setNewFolderOpen(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-600 text-sm rounded-xl hover:bg-gray-50"
+              >取消</button>
+              <button
+                onClick={submitNewFolder}
+                disabled={!newFolderName.trim()}
+                className="flex-1 px-4 py-2 bg-amber-600 text-white text-sm rounded-xl font-medium hover:bg-amber-700 disabled:opacity-40"
+              >建立</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 刪除確認 Modal */}
       {deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
@@ -196,6 +236,12 @@ export default function HomePage() {
           <Link href="/labels" className="px-3 py-2 border border-gray-300 text-gray-600 text-sm rounded-xl font-medium hover:bg-gray-50">
             列印標籤
           </Link>
+          <button
+            onClick={openNewFolder}
+            className="px-3 py-2 border border-amber-300 text-amber-700 text-sm rounded-xl font-medium hover:bg-amber-50"
+          >
+            📁 新建資料夾
+          </button>
           <Link href="/new" className="px-4 py-2 bg-amber-600 text-white text-sm rounded-xl font-medium hover:bg-amber-700 shadow-sm">
             + 新增建單
           </Link>

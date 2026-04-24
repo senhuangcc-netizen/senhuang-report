@@ -153,6 +153,12 @@ export default function NewIntakePage() {
     setItemBracket(combined.slice(0, 4))
   }, [_bracketSrc1, _bracketSrc2])
 
+  // 預填客戶名（URL ?customer=NAME）
+  useEffect(() => {
+    const name = new URLSearchParams(window.location.search).get('customer')
+    if (name) setCustomerName(decodeURIComponent(name))
+  }, [])
+
   // 載入草稿（URL ?edit=ID）
   useEffect(() => {
     const editId = new URLSearchParams(window.location.search).get('edit')
