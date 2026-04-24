@@ -2,6 +2,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import BarcodeScanner from '@/components/BarcodeScanner'
 
 interface Intake {
   id: number
@@ -41,6 +42,7 @@ export default function HomePage() {
   const [customerMenuOpen, setCustomerMenuOpen] = useState(false)
   const [customerList,     setCustomerList]     = useState<string[]>([])
   const [folderSearch,     setFolderSearch]     = useState('')
+  const [folderScanner,    setFolderScanner]    = useState(false)
 
   const openNewFolder = () => {
     setNewFolderName('')
@@ -56,6 +58,22 @@ export default function HomePage() {
     if (!newFolderName.trim()) return
     setNewFolderOpen(false)
     router.push(`/scan?customer=${encodeURIComponent(newFolderName.trim())}`)
+  }
+
+  const handleFolderScan = async (scanned: string) => {
+    setFolderScanner(false)
+    // 先嘗試用條碼查詢對應客戶
+    try {
+      const res = await fetch(`/api/intakes?barcode=${encodeURIComponent(scanned)}`)
+      const data = await res.json()
+      if (data?.customer_name) {
+        setNewFolderName(data.customer_name)
+        setFolderSearch('')
+        return
+      }
+    } catch { /* noop */ }
+    // 查無結果：用掃描內容作為搜尋詞
+    setFolderSearch(scanned)
   }
 
   const folderSuggestions = customerList.filter(n =>
@@ -179,14 +197,21 @@ export default function HomePage() {
             {customerList.length > 0 && (
               <div>
                 <p className="text-xs text-gray-600 mb-1.5">從現有客戶選擇</p>
-                <input
-                  type="search"
-                  value={folderSearch}
-                  onChange={e => setFolderSearch(e.target.value)}
-                  placeholder="搜尋客戶姓名…"
-                  autoFocus
-                  className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-amber-500"
-                />
+                <div className="flex gap-2">
+                  <input
+                    type="search"
+                    value={folderSearch}
+                    onChange={e => setFolderSearch(e.target.value)}
+                    placeholder="搜尋客戶姓名…"
+                    autoFocus
+                    className="flex-1 border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-amber-500"
+                  />
+                  <button
+                    onClick={() => setFolderScanner(true)}
+                    className="px-3 py-2 border border-amber-300 text-amber-700 rounded-xl text-sm font-medium hover:bg-amber-50 shrink-0"
+                    title="掃描條碼查詢客戶"
+                  >掃描</button>
+                </div>
                 {folderSuggestions.length > 0 && (
                   <div className="mt-1.5 max-h-44 overflow-y-auto border border-gray-200 rounded-xl divide-y divide-gray-50">
                     {folderSuggestions.map(n => (
@@ -239,6 +264,15 @@ export default function HomePage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* 資料夾掃描器 */}
+      {folderScanner && (
+        <BarcodeScanner
+          onScan={handleFolderScan}
+          onClose={() => setFolderScanner(false)}
+          keepOpen={false}
+        />
       )}
 
       {/* 刪除確認 Modal */}

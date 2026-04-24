@@ -9,8 +9,15 @@ export async function DELETE(req: NextRequest) {
   return NextResponse.json({ ok: true })
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   await ensureSchema()
+  const barcode = req.nextUrl.searchParams.get('barcode')
+  if (barcode) {
+    const { rows } = await sql`
+      SELECT customer_name FROM intakes WHERE barcode = ${barcode} ORDER BY created_at DESC LIMIT 1
+    `
+    return NextResponse.json(rows[0] || null)
+  }
   const { rows } = await sql`
     SELECT id, customer_name, item_code, building_type, appraisal_result,
            genuine_preset, status, operator, submission_date, report_path,
