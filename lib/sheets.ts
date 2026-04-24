@@ -18,6 +18,10 @@ const XRAY_HEADERS = [
   '主體照數量', 'X光照數量', '操作員', '備註', '建立時間',
 ]
 
+const CUSTOMER_HEADERS = [
+  '編號', '姓名', '性別', '電話', 'LINE', '生日', '居住地', '收藏品項', '備註', '建立時間',
+]
+
 let cachedToken: { token: string; expires: number } | null = null
 
 async function getServiceAccountToken(): Promise<string> {
@@ -207,6 +211,34 @@ export async function syncXray(record: Record<string, any>) {
     console.log('[sheets] syncXray done id=', record.id)
   } catch (e) {
     console.error('[sheets] syncXray error:', e)
+  }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function customerToRow(r: Record<string, any>): string[] {
+  let types: string[] = []
+  try { types = JSON.parse(r.collection_types || '[]') } catch { /* noop */ }
+  return [
+    String(r.id ?? ''),
+    String(r.name ?? ''),
+    String(r.gender ?? ''),
+    String(r.phone ?? ''),
+    String(r.line_id ?? ''),
+    String(r.birthday ?? ''),
+    String(r.address ?? ''),
+    types.join('、'),
+    String(r.note ?? ''),
+    String(r.created_at ?? ''),
+  ]
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function syncCustomer(record: Record<string, any>) {
+  if (!process.env.GOOGLE_SERVICE_ACCOUNT_KEY || !process.env.GOOGLE_SHEET_ID) return
+  try {
+    await syncToSheet('客戶名單', CUSTOMER_HEADERS, String(record.id), customerToRow(record))
+  } catch (e) {
+    console.error('[sheets] syncCustomer error:', e)
   }
 }
 

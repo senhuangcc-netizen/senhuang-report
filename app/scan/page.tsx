@@ -24,6 +24,8 @@ export default function ScanPage() {
   const [xrayCount,    setXrayCount]    = useState(0)
   const [scanning,     setScanning]     = useState(false)
   const [manualBarcode,setManualBarcode]= useState('')
+  const [customers,    setCustomers]    = useState<string[]>([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
 
   // 從 URL ?customer= 和 ?mode= 預填
   useEffect(() => {
@@ -34,7 +36,7 @@ export default function ScanPage() {
     if (m === 'xray') setMode('xray')
   }, [])
 
-  // 載入操作人員
+  // 載入操作人員 + 客戶名單
   useEffect(() => {
     fetch('/api/operators')
       .then(r => r.json())
@@ -42,6 +44,10 @@ export default function ScanPage() {
         setOperators(list)
         setOperator(prev => prev || list[0] || '')
       })
+    fetch('/api/customers')
+      .then(r => r.json())
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .then((list: any[]) => setCustomers(Array.isArray(list) ? list.map((c: any) => c.name) : []))
   }, [])
 
   // 建件模式：掃描後自動建草稿
@@ -128,14 +134,30 @@ export default function ScanPage() {
 
         {/* 客戶名稱 + 操作員 */}
         <div className="bg-white rounded-2xl p-4 shadow-sm space-y-3">
-          <div>
+          <div className="relative">
             <label className="block text-xs text-gray-500 mb-1">客戶名稱 *</label>
             <input
               className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:outline-none focus:border-amber-500"
               value={customerName}
-              onChange={e => setCustomerName(e.target.value)}
+              onChange={e => { setCustomerName(e.target.value); setShowSuggestions(true) }}
+              onFocus={() => setShowSuggestions(true)}
+              onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
               placeholder="輸入客戶姓名…"
             />
+            {showSuggestions && customerName && (() => {
+              const suggestions = customers.filter(n => n.toLowerCase().includes(customerName.toLowerCase()) && n !== customerName)
+              return suggestions.length > 0 ? (
+                <div className="absolute z-20 left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+                  {suggestions.slice(0, 6).map(n => (
+                    <button
+                      key={n}
+                      className="w-full text-left px-3 py-2.5 text-sm text-gray-800 hover:bg-amber-50 border-b border-gray-50 last:border-0"
+                      onMouseDown={() => { setCustomerName(n); setShowSuggestions(false) }}
+                    >{n}</button>
+                  ))}
+                </div>
+              ) : null
+            })()}
           </div>
           {operators.length > 0 && mode === 'intake' && (
             <div>

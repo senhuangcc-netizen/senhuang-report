@@ -1,27 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { sql } from '@/lib/db'
+import { sql, ensureSchema } from '@/lib/db'
+import { syncCustomer } from '@/lib/sheets'
 
-// GET /api/customers?ym=202604  → distinct customer names for that year-month
-export async function GET(req: NextRequest) {
-  const ym = req.nextUrl.searchParams.get('ym') || ''
-  let rows: { customer_name: string }[]
+export async function GET() {
+  await ensureSchema()
+  const { rows } = await sql`SELECT * FROM customers ORDER BY created_at DESC`
+  return NextResponse.json(rows)
+}
 
-  if (ym && /^\d{6}$/.test(ym)) {
-    const year = ym.slice(0, 4)
-    const month = ym.slice(4, 6)
-    const prefix = `${year}-${month}-%`
-    const res = await sql`
-      SELECT DISTINCT customer_name FROM intakes
-      WHERE created_at::date::text LIKE ${prefix}
-      ORDER BY customer_name ASC
-    `
-    rows = res.rows as { customer_name: string }[]
-  } else {
-    const res = await sql`
-      SELECT DISTINCT customer_name FROM intakes ORDER BY customer_name ASC
-    `
-    rows = res.rows as { customer_name: string }[]
-  }
-
-  return NextResponse.json(rows.map(r => r.customer_name))
+export async function POST(req: NextRequest) {
+  await ensureSchema()
+  const body = await req.json()
+  const { rows } = await sql`
+    INSERT INTO customers (name, gender, phone, line_id, birthday, address, collection_types, note)
+    VALUES (
+      ${body.name},
+      ${body.gender || null},
+      ${body.phone || null},
+      ${body.lineId || null},
+      ${body.birthday || null},
+      ${body.address || null},
+      ${JSON.stringify(body.collectionTypes || [])},
+      ${body.note || null}
+    ) RETURNING *
+  `
+  syncCustomer(rows[0])
+  return NextResponse.json(rows[0])
 }

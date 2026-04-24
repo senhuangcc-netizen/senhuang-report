@@ -79,6 +79,21 @@ export async function ensureSchema() {
       created_at TIMESTAMP DEFAULT NOW()
     )
   `
+  await sql`
+    CREATE TABLE IF NOT EXISTS customers (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      gender TEXT,
+      phone TEXT,
+      line_id TEXT,
+      birthday TEXT,
+      address TEXT,
+      collection_types TEXT DEFAULT '[]',
+      note TEXT,
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
+    )
+  `
   schemaReady = true
 }
 
