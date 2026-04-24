@@ -98,23 +98,15 @@ export async function ensureSchema() {
 }
 
 export async function nextItemCode(folderName: string): Promise<string> {
-  // 取得或分配字母
+  // 取得或分配資料夾字母（A-Z 循環，整個資料夾共用同一個字母）
   let { rows } = await sql`SELECT letter FROM folder_letters WHERE folder_name = ${folderName}`
-  let letter: string
-  if (rows.length > 0) {
-    letter = rows[0].letter
-  } else {
-    const { rows: cnt } = await sql`SELECT COUNT(*) AS c FROM folder_letters`
-    const idx = parseInt(cnt[0].c) % 26
-    letter = String.fromCharCode(65 + idx)
-    await sql`INSERT INTO folder_letters (folder_name, letter) VALUES (${folderName}, ${letter}) ON CONFLICT DO NOTHING`
-    const { rows: re } = await sql`SELECT letter FROM folder_letters WHERE folder_name = ${folderName}`
-    letter = re[0].letter
-  }
-  // 序號 = 該資料夾現有件數 + 1
-  const { rows: items } = await sql`SELECT COUNT(*) AS c FROM intakes WHERE folder_name = ${folderName}`
-  const seq = parseInt(items[0].c) + 1
-  return `${letter}${String(seq).padStart(2, '0')}`
+  if (rows.length > 0) return rows[0].letter
+  const { rows: cnt } = await sql`SELECT COUNT(*) AS c FROM folder_letters`
+  const idx = parseInt(cnt[0].c) % 26
+  const letter = String.fromCharCode(65 + idx)
+  await sql`INSERT INTO folder_letters (folder_name, letter) VALUES (${folderName}, ${letter}) ON CONFLICT DO NOTHING`
+  const { rows: re } = await sql`SELECT letter FROM folder_letters WHERE folder_name = ${folderName}`
+  return re[0].letter
 }
 
 export async function logAudit(intakeId: number, operator: string, action: string, fields?: string) {
