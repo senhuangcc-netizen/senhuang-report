@@ -131,17 +131,19 @@ export default function HomePage() {
   const toggleItem = (id: number) =>
     setOpenItems(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
 
+  const deleteItem = async (id: number) => {
+    setDeleting(id)
+    await fetch(`/api/intakes/${id}`, { method: 'DELETE' })
+    setIntakes(prev => prev.filter(i => i.id !== id))
+    setDeleting(null)
+  }
+
   const execDelete = async () => {
     if (!deleteTarget || !confirmReady) return
-    if (deleteTarget.type === 'folder') {
-      setDeleting(-1)
-      await fetch(`/api/intakes?customerName=${encodeURIComponent(deleteTarget.customerName)}`, { method: 'DELETE' })
-      setIntakes(prev => prev.filter(i => i.customer_name !== deleteTarget.customerName))
-    } else {
-      setDeleting(deleteTarget.id)
-      await fetch(`/api/intakes/${deleteTarget.id}`, { method: 'DELETE' })
-      setIntakes(prev => prev.filter(i => i.id !== deleteTarget.id))
-    }
+    // execDelete is now only used for folder deletion
+    setDeleting(-1)
+    await fetch(`/api/intakes?customerName=${encodeURIComponent(deleteTarget.customerName)}`, { method: 'DELETE' })
+    setIntakes(prev => prev.filter(i => i.customer_name !== deleteTarget.customerName))
     setDeleting(null)
     setDeleteTarget(null)
     setConfirmInput('')
@@ -368,15 +370,10 @@ export default function HomePage() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
             <div className="flex items-center gap-2 text-red-600">
               <span className="text-xl">🗑</span>
-              <h2 className="font-bold text-base">
-                {deleteTarget.type === 'folder' ? '刪除整個客戶資料夾' : '刪除此建單'}
-              </h2>
+              <h2 className="font-bold text-base">刪除整個客戶資料夾</h2>
             </div>
             <p className="text-sm text-gray-600">
-              {deleteTarget.type === 'folder'
-                ? <>此操作將刪除 <span className="font-semibold text-gray-900">「{deleteTarget.customerName}」</span> 資料夾內的所有建單，無法復原。</>
-                : <>此操作將刪除建單 <span className="font-mono font-semibold text-gray-900">{deleteTarget.itemCode}</span>（客戶：{deleteTarget.customerName}），無法復原。</>
-              }
+              此操作將刪除 <span className="font-semibold text-gray-900">「{deleteTarget.customerName}」</span> 資料夾內的所有建單，無法復原。
             </p>
             <div>
               <p className="text-xs text-gray-700 mb-1">請輸入客戶名稱確認：<span className="font-semibold text-gray-800">{deleteKey}</span></p>
@@ -753,10 +750,11 @@ export default function HomePage() {
                                   </a>
                                 )}
                                 <button
-                                  onClick={() => { setConfirmInput(''); setDeleteTarget({ type: 'item', id: intake.id, itemCode: intake.item_code, customerName: intake.customer_name }) }}
-                                  className="text-xs px-2.5 py-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg ml-auto"
+                                  onClick={() => deleteItem(intake.id)}
+                                  disabled={deleting === intake.id}
+                                  className="text-xs px-2.5 py-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg ml-auto disabled:opacity-40"
                                 >
-                                  🗑 刪除
+                                  {deleting === intake.id ? '刪除中…' : '🗑 刪除'}
                                 </button>
                               </div>
                             </div>
