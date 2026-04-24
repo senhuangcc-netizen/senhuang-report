@@ -37,6 +37,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       status          = ${body.status || 'draft'},
       case_stage      = ${body.caseStage || '收件'},
       inspection_unit = ${body.inspectionUnit || null},
+      photo_stages    = ${JSON.stringify(body.photoStages || [])},
       updated_at      = NOW()
     WHERE id = ${parseInt(id)}
   `

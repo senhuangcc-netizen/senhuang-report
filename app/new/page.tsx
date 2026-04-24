@@ -96,9 +96,13 @@ export default function NewIntakePage() {
   const [categoryData, setCategoryData] = useState<Record<string, unknown>>({})
   const [genuinePreset, setGenuinePreset] = useState('')
 
-  // 案件進度 + 送檢單位
+  // 案件進度 + 送檢單位 + 拍照子進度
   const [caseStage,      setCaseStage]      = useState('收件')
   const [inspectionUnit, setInspectionUnit] = useState('')
+  const [photoStages,    setPhotoStages]    = useState<string[]>([])
+
+  const togglePhotoStage = (s: string) =>
+    setPhotoStages(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])
 
   // 照片 / XRF
   const [photos,       setPhotos]       = useState<PhotoItem[]>([])
@@ -241,6 +245,7 @@ export default function NewIntakePage() {
         setXrfChartUrl(data.xrf_chart_url || '')
         setCaseStage(data.case_stage || '收件')
         setInspectionUnit(data.inspection_unit || '')
+        try { setPhotoStages(JSON.parse(data.photo_stages || '[]')) } catch { /* noop */ }
       })
   }, [])
 
@@ -303,6 +308,7 @@ export default function NewIntakePage() {
     status,
     caseStage,
     inspectionUnit,
+    photoStages,
   })
 
   const lookupCard = async () => {
@@ -474,8 +480,8 @@ export default function NewIntakePage() {
         {error && <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 text-sm">{error}</div>}
 
         {/* 案件進度 */}
-        <section className="bg-white rounded-2xl p-4 shadow-sm">
-          <h2 className="font-semibold text-gray-800 text-sm mb-3">案件進度</h2>
+        <section className="bg-white rounded-2xl p-4 shadow-sm space-y-3">
+          <h2 className="font-semibold text-gray-800 text-sm">案件進度</h2>
           <div className="overflow-x-auto -mx-1 px-1">
             <div className="flex gap-1.5 min-w-max">
               {CASE_STAGES.map((stage, idx) => (
@@ -496,6 +502,27 @@ export default function NewIntakePage() {
               ))}
             </div>
           </div>
+          {/* 拍照子進度：僅在「拍照」階段展開 */}
+          {caseStage === '拍照' && (
+            <div className="border-t pt-3">
+              <p className="text-xs text-gray-400 mb-2">已完成的拍照項目</p>
+              <div className="flex gap-3">
+                {(['主體照', '顯微照', '360'] as const).map(ps => (
+                  <label key={ps} className="flex items-center gap-1.5 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={photoStages.includes(ps)}
+                      onChange={() => togglePhotoStage(ps)}
+                      className="w-4 h-4 rounded accent-amber-600"
+                    />
+                    <span className={`text-sm ${photoStages.includes(ps) ? 'text-amber-700 font-medium' : 'text-gray-500'}`}>
+                      {ps}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
         </section>
 
         {/* 真品模組（可搜尋，CC/RC 連動） */}

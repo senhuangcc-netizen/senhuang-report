@@ -16,6 +16,7 @@ interface Intake {
   submission_date?: string
   report_path?: string
   case_stage?: string
+  photo_stages?: string
 }
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
@@ -392,6 +393,22 @@ export default function HomePage() {
                                 <span>📅 {intake.submission_date || intake.created_at?.slice(0, 10)}</span>
                                 <span>👤 {intake.operator}</span>
                               </div>
+                              {/* 拍照子進度 */}
+                              {intake.case_stage === '拍照' && (() => {
+                                let ps: string[] = []
+                                try { ps = JSON.parse(intake.photo_stages || '[]') } catch { /* noop */ }
+                                return (
+                                  <div className="flex gap-2">
+                                    {(['主體照', '顯微照', '360'] as const).map(s => (
+                                      <span key={s} className={`text-xs px-2 py-0.5 rounded-lg border ${
+                                        ps.includes(s) ? 'bg-amber-50 text-amber-700 border-amber-200' : 'text-gray-300 border-gray-100'
+                                      }`}>
+                                        {ps.includes(s) ? '✓ ' : ''}{s}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )
+                              })()}
                               <div className="flex gap-1.5 flex-wrap items-center">
                                 <button
                                   onClick={() => router.push(`/new?edit=${intake.id}`)}
