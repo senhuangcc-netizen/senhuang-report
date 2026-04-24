@@ -387,13 +387,16 @@ export default function NewIntakePage() {
         setPhotos(updatedPhotos)
       }
 
-      // PATCH 儲存（含完整照片清單）
+      // PATCH 儲存（含完整照片清單，含收件照）
       await fetch(`/api/intakes/${currentDraftId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...buildPayload(),
-          photos: updatedPhotos.filter(p => p.savedPath).map(p => ({ category: p.category, path: p.savedPath! })),
+          photos: [
+            ...intakePhotos.map(p => ({ category: '收件照', path: p })),
+            ...updatedPhotos.filter(p => p.savedPath).map(p => ({ category: p.category, path: p.savedPath! })),
+          ],
         }),
       })
 
