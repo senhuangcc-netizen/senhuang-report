@@ -29,7 +29,11 @@ export async function POST(req: NextRequest) {
   const safeName = (body.customerName as string).replace(/[\/\\:*?"<>|]/g, '_').trim()
   const folderName = `${safeName}_${ym}`
 
-  const autoCode = await nextItemCode(folderName)
+  // 若條碼後三碼符合「1英+2數」格式（我方標籤），直接用後三碼作為編碼
+  const barcodeStr: string = body.barcode || ''
+  const labelSuffix = barcodeStr.slice(-3)
+  const isLabelBarcode = barcodeStr.length >= 3 && /^[A-Z][0-9]{2}$/.test(labelSuffix)
+  const autoCode = isLabelBarcode ? labelSuffix : await nextItemCode(folderName)
 
   const { rows } = await sql`
     INSERT INTO intakes (

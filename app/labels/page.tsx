@@ -4,7 +4,11 @@ import QRCode from 'qrcode'
 import Link from 'next/link'
 
 function makeCode() {
-  return crypto.randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase()
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+  const prefix = Array.from({ length: 5 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
+  const letter = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[Math.floor(Math.random() * 26)]
+  const digits = String(Math.floor(Math.random() * 100)).padStart(2, '0')
+  return `${prefix}${letter}${digits}`
 }
 
 export default function LabelsPage() {

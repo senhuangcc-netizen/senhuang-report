@@ -50,9 +50,17 @@ export default function ScanPage() {
       .then((list: any[]) => setCustomers(Array.isArray(list) ? list.map((c: any) => c.name) : []))
   }, [])
 
+  const [dupWarning, setDupWarning] = useState('')
+
   // 建件模式：掃描後自動建草稿
   const createDraft = useCallback(async (barcode: string) => {
     if (!customerName.trim()) return
+    // 防重複條碼
+    if (items.some(it => it.barcode === barcode)) {
+      setDupWarning(`條碼 ${barcode} 已掃描過`)
+      setTimeout(() => setDupWarning(''), 2500)
+      return
+    }
     const tempId = Date.now() + Math.random()
     setItems(prev => [...prev, { tempId, barcode, itemCode: '…', intakeId: null, status: 'saving' }])
     try {
@@ -79,7 +87,7 @@ export default function ScanPage() {
         it.tempId === tempId ? { ...it, status: 'error' } : it
       ))
     }
-  }, [customerName, operator])
+  }, [customerName, operator, items])
 
   // X光模式：掃描後跳轉到 X光照表單
   const openXray = useCallback((barcode: string) => {
@@ -183,6 +191,13 @@ export default function ScanPage() {
         >
           {mode === 'xray' ? '🔬 掃描條碼 → X光照表單' : '📷 掃描條碼'}
         </button>
+
+        {/* 重複條碼警告 */}
+        {dupWarning && (
+          <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-2.5 rounded-xl text-center">
+            {dupWarning}
+          </div>
+        )}
 
         {/* 手動輸入 */}
         <div className="bg-white rounded-2xl p-4 shadow-sm">

@@ -242,21 +242,21 @@ export default function HomePage() {
           </Link>
         </div>
         <div className="flex gap-2">
-          <Link href="/new" className="flex-1 py-2.5 bg-amber-600 text-white text-sm rounded-xl font-semibold hover:bg-amber-700 text-center">
-            新增報告
-          </Link>
-          <button
-            onClick={openNewFolder}
-            className="flex-1 py-2.5 border border-amber-300 text-amber-700 text-sm rounded-xl font-semibold hover:bg-amber-50"
-          >
-            新資料夾
-          </button>
           <button
             onClick={() => router.push('/customers/new')}
             className="flex-1 py-2.5 border border-gray-200 text-gray-700 text-sm rounded-xl font-semibold hover:bg-gray-50"
           >
             新增客戶
           </button>
+          <button
+            onClick={openNewFolder}
+            className="flex-1 py-2.5 border border-amber-300 text-amber-700 text-sm rounded-xl font-semibold hover:bg-amber-50"
+          >
+            新資料夾
+          </button>
+          <Link href="/new" className="flex-1 py-2.5 bg-amber-600 text-white text-sm rounded-xl font-semibold hover:bg-amber-700 text-center">
+            新增報告
+          </Link>
         </div>
       </header>
 
