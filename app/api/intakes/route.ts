@@ -1,5 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { sql, ensureSchema, logAudit } from '@/lib/db'
+import { sql, ensureSchema, logAudit, nextItemCode } from '@/lib/db'
+import { syncIntake } from '@/lib/sheets'
+
+export async function DELETE(req: NextRequest) {
+  const customerName = req.nextUrl.searchParams.get('customerName')
+  if (!customerName) return NextResponse.json({ error: 'customerName required' }, { status: 400 })
+  await sql`DELETE FROM intakes WHERE customer_name = ${customerName}`
+  return NextResponse.json({ ok: true })
+}
 
 export async function GET() {
   const { rows } = await sql`
@@ -19,6 +27,8 @@ export async function POST(req: NextRequest) {
   const safeName = (body.customerName as string).replace(/[\/\\:*?"<>|]/g, '_').trim()
   const folderName = `${safeName}_${ym}`
 
+  const autoCode = await nextItemCode(folderName)
+
   const { rows } = await sql`
     INSERT INTO intakes (
       folder_name, customer_name, item_code, barcode, card_number, card_status,
@@ -27,7 +37,7 @@ export async function POST(req: NextRequest) {
     ) VALUES (
       ${folderName},
       ${body.customerName},
-      ${body.itemCode},
+      ${autoCode},
       ${body.barcode || null},
       ${body.cardNumber || null},
       ${body.cardStatus || null},
@@ -50,6 +60,9 @@ export async function POST(req: NextRequest) {
 
   const id = rows[0].id
   await logAudit(id, body.operator, '建單')
+
+  const { rows: newRows } = await sql`SELECT * FROM intakes WHERE id = ${id}`
+  syncIntake(newRows[0]) // 非阻塞
 
   return NextResponse.json({ id, folderPath: folderName })
 }

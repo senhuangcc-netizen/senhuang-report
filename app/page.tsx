@@ -33,18 +33,37 @@ export default function HomePage() {
   const [openFolders, setOpenFolders] = useState<Set<string>>(new Set())
   const [openItems, setOpenItems] = useState<Set<number>>(new Set())
 
+  // 刪除確認 Modal
+  type DeleteTarget =
+    | { type: 'folder'; customerName: string }
+    | { type: 'item'; id: number; itemCode: string; customerName: string }
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null)
+  const [confirmInput, setConfirmInput] = useState('')
+  const deleteKey = deleteTarget?.type === 'folder'
+    ? deleteTarget.customerName
+    : deleteTarget?.type === 'item' ? deleteTarget.customerName : ''
+  const confirmReady = confirmInput === deleteKey
+
   const toggleFolder = (name: string) =>
     setOpenFolders(prev => { const n = new Set(prev); n.has(name) ? n.delete(name) : n.add(name); return n })
 
   const toggleItem = (id: number) =>
     setOpenItems(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
 
-  const deleteIntake = async (id: number) => {
-    if (!confirm('確定要刪除這份建單嗎？此動作無法復原。')) return
-    setDeleting(id)
-    await fetch(`/api/intakes/${id}`, { method: 'DELETE' })
-    setIntakes(prev => prev.filter(i => i.id !== id))
+  const execDelete = async () => {
+    if (!deleteTarget || !confirmReady) return
+    if (deleteTarget.type === 'folder') {
+      setDeleting(-1)
+      await fetch(`/api/intakes?customerName=${encodeURIComponent(deleteTarget.customerName)}`, { method: 'DELETE' })
+      setIntakes(prev => prev.filter(i => i.customer_name !== deleteTarget.customerName))
+    } else {
+      setDeleting(deleteTarget.id)
+      await fetch(`/api/intakes/${deleteTarget.id}`, { method: 'DELETE' })
+      setIntakes(prev => prev.filter(i => i.id !== deleteTarget.id))
+    }
     setDeleting(null)
+    setDeleteTarget(null)
+    setConfirmInput('')
   }
 
   const todayYear  = new Date().getFullYear().toString()
@@ -120,6 +139,54 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+
+      {/* 刪除確認 Modal */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
+            <div className="flex items-center gap-2 text-red-600">
+              <span className="text-xl">🗑</span>
+              <h2 className="font-bold text-base">
+                {deleteTarget.type === 'folder' ? '刪除整個客戶資料夾' : '刪除此建單'}
+              </h2>
+            </div>
+            <p className="text-sm text-gray-600">
+              {deleteTarget.type === 'folder'
+                ? <>此操作將刪除 <span className="font-semibold text-gray-900">「{deleteTarget.customerName}」</span> 資料夾內的所有建單，無法復原。</>
+                : <>此操作將刪除建單 <span className="font-mono font-semibold text-gray-900">{deleteTarget.itemCode}</span>（客戶：{deleteTarget.customerName}），無法復原。</>
+              }
+            </p>
+            <div>
+              <p className="text-xs text-gray-500 mb-1">請輸入客戶名稱確認：<span className="font-semibold text-gray-800">{deleteKey}</span></p>
+              <input
+                type="text"
+                value={confirmInput}
+                onChange={e => setConfirmInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && confirmReady && execDelete()}
+                placeholder={deleteKey}
+                autoFocus
+                className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-red-400"
+              />
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setDeleteTarget(null); setConfirmInput('') }}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-600 text-sm rounded-xl hover:bg-gray-50"
+              >
+                取消
+              </button>
+              <button
+                onClick={execDelete}
+                disabled={!confirmReady || deleting !== null}
+                className="flex-1 px-4 py-2 bg-red-600 text-white text-sm rounded-xl font-medium hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {deleting !== null ? '刪除中...' : '確認刪除'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <header className="bg-white border-b px-4 py-3 flex items-center justify-between shadow-sm">
         <div>
           <h1 className="font-bold text-gray-900 text-lg">東方森煌建單系統</h1>
@@ -220,6 +287,11 @@ export default function HomePage() {
                     <span className="text-xs bg-green-50 text-green-600 px-2 py-0.5 rounded-full">{completedCount} 完成</span>
                   )}
                   <span className="ml-auto text-gray-300 text-sm">{folderOpen ? '▾' : '▸'}</span>
+                  <button
+                    onClick={e => { e.stopPropagation(); setConfirmInput(''); setDeleteTarget({ type: 'folder', customerName: cname }) }}
+                    className="text-gray-300 hover:text-red-500 text-sm px-1 transition-colors"
+                    title="刪除整個資料夾"
+                  >🗑</button>
                 </div>
 
                 {/* 第二層：資料夾內的建單列表 */}
@@ -294,11 +366,10 @@ export default function HomePage() {
                                   </a>
                                 )}
                                 <button
-                                  onClick={() => deleteIntake(intake.id)}
-                                  disabled={deleting === intake.id}
-                                  className="text-xs px-2.5 py-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg ml-auto disabled:opacity-40"
+                                  onClick={() => { setConfirmInput(''); setDeleteTarget({ type: 'item', id: intake.id, itemCode: intake.item_code, customerName: intake.customer_name }) }}
+                                  className="text-xs px-2.5 py-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg ml-auto"
                                 >
-                                  {deleting === intake.id ? '刪除中...' : '🗑 刪除'}
+                                  🗑 刪除
                                 </button>
                               </div>
                             </div>

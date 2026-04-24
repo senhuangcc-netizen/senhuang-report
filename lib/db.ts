@@ -53,7 +53,34 @@ export async function ensureSchema() {
     )
   `
   await sql`ALTER TABLE intakes ADD COLUMN IF NOT EXISTS xrf_chart_url TEXT`
+  await sql`
+    CREATE TABLE IF NOT EXISTS folder_letters (
+      folder_name TEXT PRIMARY KEY,
+      letter CHAR(1) NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `
   schemaReady = true
+}
+
+export async function nextItemCode(folderName: string): Promise<string> {
+  // 取得或分配字母
+  let { rows } = await sql`SELECT letter FROM folder_letters WHERE folder_name = ${folderName}`
+  let letter: string
+  if (rows.length > 0) {
+    letter = rows[0].letter
+  } else {
+    const { rows: cnt } = await sql`SELECT COUNT(*) AS c FROM folder_letters`
+    const idx = parseInt(cnt[0].c) % 26
+    letter = String.fromCharCode(65 + idx)
+    await sql`INSERT INTO folder_letters (folder_name, letter) VALUES (${folderName}, ${letter}) ON CONFLICT DO NOTHING`
+    const { rows: re } = await sql`SELECT letter FROM folder_letters WHERE folder_name = ${folderName}`
+    letter = re[0].letter
+  }
+  // 序號 = 該資料夾現有件數 + 1
+  const { rows: items } = await sql`SELECT COUNT(*) AS c FROM intakes WHERE folder_name = ${folderName}`
+  const seq = parseInt(items[0].c) + 1
+  return `${letter}${seq}`
 }
 
 export async function logAudit(intakeId: number, operator: string, action: string, fields?: string) {
