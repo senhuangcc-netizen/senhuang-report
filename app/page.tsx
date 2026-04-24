@@ -36,16 +36,31 @@ export default function HomePage() {
   const [openItems, setOpenItems] = useState<Set<number>>(new Set())
 
   // 新建資料夾 Modal
-  const [newFolderOpen,   setNewFolderOpen]   = useState(false)
-  const [newFolderName,   setNewFolderName]   = useState('')
+  const [newFolderOpen,    setNewFolderOpen]    = useState(false)
+  const [newFolderName,    setNewFolderName]    = useState('')
   const [customerMenuOpen, setCustomerMenuOpen] = useState(false)
+  const [customerList,     setCustomerList]     = useState<string[]>([])
+  const [folderSearch,     setFolderSearch]     = useState('')
 
-  const openNewFolder = () => { setNewFolderName(''); setNewFolderOpen(true) }
+  const openNewFolder = () => {
+    setNewFolderName('')
+    setFolderSearch('')
+    setNewFolderOpen(true)
+    fetch('/api/customers')
+      .then(r => r.json())
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .then((list: any[]) => setCustomerList(Array.isArray(list) ? list.map((c: any) => c.name) : []))
+  }
+
   const submitNewFolder = () => {
     if (!newFolderName.trim()) return
     setNewFolderOpen(false)
     router.push(`/scan?customer=${encodeURIComponent(newFolderName.trim())}`)
   }
+
+  const folderSuggestions = customerList.filter(n =>
+    !folderSearch || n.toLowerCase().includes(folderSearch.toLowerCase())
+  )
 
   // 刪除確認 Modal
   type DeleteTarget =
@@ -157,19 +172,61 @@ export default function HomePage() {
       {/* 新建資料夾 Modal */}
       {newFolderOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-5 space-y-3">
             <h2 className="font-bold text-base text-gray-900">新建客戶資料夾</h2>
+
+            {/* 搜尋現有客戶 */}
+            {customerList.length > 0 && (
+              <div>
+                <p className="text-xs text-gray-600 mb-1.5">從現有客戶選擇</p>
+                <input
+                  type="search"
+                  value={folderSearch}
+                  onChange={e => setFolderSearch(e.target.value)}
+                  placeholder="搜尋客戶姓名…"
+                  autoFocus
+                  className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-amber-500"
+                />
+                {folderSuggestions.length > 0 && (
+                  <div className="mt-1.5 max-h-44 overflow-y-auto border border-gray-200 rounded-xl divide-y divide-gray-50">
+                    {folderSuggestions.map(n => (
+                      <button
+                        key={n}
+                        onClick={() => { setNewFolderName(n); setFolderSearch('') }}
+                        className={`w-full text-left px-3 py-2.5 text-sm transition-colors ${
+                          newFolderName === n
+                            ? 'bg-amber-50 text-amber-800 font-semibold'
+                            : 'text-gray-800 hover:bg-gray-50'
+                        }`}
+                      >
+                        {n}
+                        {newFolderName === n && <span className="ml-2 text-amber-600 text-xs">✓ 已選</span>}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 分隔線 */}
+            <div className="flex items-center gap-2">
+              <div className="flex-1 h-px bg-gray-200" />
+              <span className="text-xs text-gray-500">或輸入新客戶姓名</span>
+              <div className="flex-1 h-px bg-gray-200" />
+            </div>
+
+            {/* 手動輸入 / 已選顯示 */}
             <input
               type="text"
               value={newFolderName}
               onChange={e => setNewFolderName(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && submitNewFolder()}
               placeholder="輸入客戶姓名"
-              autoFocus
               className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-amber-500"
             />
-            <p className="text-xs text-gray-600">建立後可批次掃描多件條碼</p>
-            <div className="flex gap-2">
+            <p className="text-xs text-gray-600">建立後進入掃描頁，可批次掃描多件條碼</p>
+
+            <div className="flex gap-2 pt-1">
               <button
                 onClick={() => setNewFolderOpen(false)}
                 className="flex-1 px-4 py-2 border border-gray-300 text-gray-600 text-sm rounded-xl hover:bg-gray-50"
@@ -178,7 +235,7 @@ export default function HomePage() {
                 onClick={submitNewFolder}
                 disabled={!newFolderName.trim()}
                 className="flex-1 px-4 py-2 bg-amber-600 text-white text-sm rounded-xl font-medium hover:bg-amber-700 disabled:opacity-40"
-              >建立 →掃描</button>
+              >建立 → 掃描</button>
             </div>
           </div>
         </div>
