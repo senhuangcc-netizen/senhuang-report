@@ -12,7 +12,8 @@ export async function DELETE(req: NextRequest) {
 export async function GET() {
   const { rows } = await sql`
     SELECT id, customer_name, item_code, building_type, appraisal_result,
-           genuine_preset, status, operator, submission_date, report_path, created_at
+           genuine_preset, status, operator, submission_date, report_path,
+           case_stage, created_at
     FROM intakes ORDER BY created_at DESC
   `
   return NextResponse.json(rows)
@@ -33,7 +34,8 @@ export async function POST(req: NextRequest) {
     INSERT INTO intakes (
       folder_name, customer_name, item_code, barcode, card_number, card_status,
       building_type, appraisal_result, size, weight, submission_date, report_date,
-      note, category_data, genuine_preset, photos, xrf_pdf_url, pdf_path, operator, status
+      note, category_data, genuine_preset, photos, xrf_pdf_url, pdf_path,
+      operator, status, case_stage, inspection_unit
     ) VALUES (
       ${folderName},
       ${body.customerName},
@@ -41,8 +43,8 @@ export async function POST(req: NextRequest) {
       ${body.barcode || null},
       ${body.cardNumber || null},
       ${body.cardStatus || null},
-      ${body.buildingType},
-      ${body.appraisalResult},
+      ${body.buildingType || null},
+      ${body.appraisalResult || null},
       ${body.size || null},
       ${body.weight || null},
       ${body.submissionDate},
@@ -54,7 +56,9 @@ export async function POST(req: NextRequest) {
       ${body.xrfPdfUrl || null},
       ${body.pdfPath || null},
       ${body.operator},
-      'draft'
+      'draft',
+      ${body.caseStage || '收件'},
+      ${body.inspectionUnit || null}
     ) RETURNING id
   `
 

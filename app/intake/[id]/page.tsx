@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
+import { CASE_STAGES } from '@/lib/formData'
 
 interface Intake {
   id: number
@@ -22,6 +23,8 @@ interface Intake {
   xrf_pdf_url?: string
   operator?: string
   status?: string
+  case_stage?: string
+  inspection_unit?: string
   created_at?: string
   updated_at?: string
   report_path?: string
@@ -135,12 +138,41 @@ export default function IntakePreviewPage() {
           </div>
         </section>
 
+        {/* 案件進度 */}
+        {intake.case_stage && (
+          <section className="bg-white rounded-2xl p-4 shadow-sm">
+            <h3 className="font-semibold text-gray-800 text-sm mb-3">案件進度</h3>
+            <div className="overflow-x-auto -mx-1 px-1">
+              <div className="flex gap-1.5 min-w-max">
+                {CASE_STAGES.map((stage, idx) => {
+                  const currentIdx = CASE_STAGES.indexOf(intake.case_stage as typeof CASE_STAGES[number])
+                  return (
+                    <span
+                      key={stage}
+                      className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-medium border ${
+                        stage === intake.case_stage
+                          ? 'bg-amber-600 text-white border-amber-600'
+                          : currentIdx > idx
+                          ? 'bg-amber-50 text-amber-600 border-amber-200'
+                          : 'bg-white text-gray-400 border-gray-100'
+                      }`}
+                    >
+                      {idx + 1}. {stage}
+                    </span>
+                  )
+                })}
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* 基本資料 */}
         <section className="bg-white rounded-2xl p-4 shadow-sm">
           <h3 className="font-semibold text-gray-800 border-b pb-2 mb-3">基本資料</h3>
           <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
             <Field label="送檢日" value={intake.submission_date} />
             <Field label="報告日" value={intake.report_date} />
+            {intake.inspection_unit && <Field label="送檢單位" value={intake.inspection_unit} />}
             <Field label="尺寸 (mm)" value={intake.size} />
             <Field label="重量 (gram)" value={intake.weight} />
             {intake.barcode && <Field label="條碼" value={intake.barcode} />}

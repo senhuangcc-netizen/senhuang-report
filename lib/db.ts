@@ -53,6 +53,8 @@ export async function ensureSchema() {
     )
   `
   await sql`ALTER TABLE intakes ADD COLUMN IF NOT EXISTS xrf_chart_url TEXT`
+  await sql`ALTER TABLE intakes ADD COLUMN IF NOT EXISTS case_stage TEXT DEFAULT '收件'`
+  await sql`ALTER TABLE intakes ADD COLUMN IF NOT EXISTS inspection_unit TEXT`
   await sql`
     CREATE TABLE IF NOT EXISTS folder_letters (
       folder_name TEXT PRIMARY KEY,

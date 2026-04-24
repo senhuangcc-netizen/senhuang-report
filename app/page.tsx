@@ -15,6 +15,7 @@ interface Intake {
   created_at: string
   submission_date?: string
   report_path?: string
+  case_stage?: string
 }
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
@@ -316,6 +317,9 @@ export default function HomePage() {
             const folderOpen = openFolders.has(cname)
             const submittedCount = items.filter(i => i.status === 'submitted').length
             const completedCount = items.filter(i => i.status === 'completed').length
+            // 資料夾進度：全部 items 進度相同才顯示
+            const stages = items.map(i => i.case_stage || '收件')
+            const folderStage = stages.every(s => s === stages[0]) ? stages[0] : null
             return (
               <div key={cname} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
 
@@ -327,6 +331,13 @@ export default function HomePage() {
                   <span className="text-base">{folderOpen ? '📂' : '📁'}</span>
                   <span className="font-semibold text-gray-900">{cname}</span>
                   <span className="text-xs text-gray-400 ml-1">{items.length} 件</span>
+                  {folderStage && (
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${
+                      folderStage === '完成' ? 'bg-green-50 text-green-600' :
+                      folderStage === '收件' ? 'bg-gray-100 text-gray-500' :
+                      'bg-amber-50 text-amber-700'
+                    }`}>{folderStage}</span>
+                  )}
                   {submittedCount > 0 && (
                     <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">{submittedCount} 送出</span>
                   )}
@@ -362,6 +373,11 @@ export default function HomePage() {
                             <span className="text-gray-300 text-xs w-3 shrink-0">{itemOpen ? '▾' : '▸'}</span>
                             <span className="font-mono text-xs text-gray-500 shrink-0">{intake.item_code}</span>
                             <span className="text-sm text-gray-800 truncate flex-1">{itemName}</span>
+                            {intake.case_stage && intake.case_stage !== '收件' && (
+                              <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 font-medium ${
+                                intake.case_stage === '完成' ? 'bg-green-50 text-green-600' : 'bg-amber-50 text-amber-700'
+                              }`}>{intake.case_stage}</span>
+                            )}
                             <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${status.color}`}>{status.label}</span>
                           </div>
 

@@ -35,6 +35,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       xrf_chart_url   = ${body.xrfChartUrl || null},
       operator        = ${body.operator ?? ''},
       status          = ${body.status || 'draft'},
+      case_stage      = ${body.caseStage || '收件'},
+      inspection_unit = ${body.inspectionUnit || null},
       updated_at      = NOW()
     WHERE id = ${parseInt(id)}
   `

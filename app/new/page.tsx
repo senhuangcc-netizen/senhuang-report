@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { BUILDING_TYPES, BuildingType, APPRAISAL_RESULTS, GENUINE_PRESETS } from '@/lib/formData'
+import { BUILDING_TYPES, BuildingType, APPRAISAL_RESULTS, GENUINE_PRESETS, CASE_STAGES } from '@/lib/formData'
 import SearchableSelect from '@/components/SearchableSelect'
 import CategoryFields from '@/components/CategoryFields'
 import PhotoUpload, { PhotoItem } from '@/components/PhotoUpload'
@@ -95,6 +95,10 @@ export default function NewIntakePage() {
   const [note,   setNote]   = useState('')
   const [categoryData, setCategoryData] = useState<Record<string, unknown>>({})
   const [genuinePreset, setGenuinePreset] = useState('')
+
+  // 案件進度 + 送檢單位
+  const [caseStage,      setCaseStage]      = useState('收件')
+  const [inspectionUnit, setInspectionUnit] = useState('')
 
   // 照片 / XRF
   const [photos,       setPhotos]       = useState<PhotoItem[]>([])
@@ -235,6 +239,8 @@ export default function NewIntakePage() {
         } catch { /* noop */ }
         setXrfPdfUrl(data.xrf_pdf_url || '')
         setXrfChartUrl(data.xrf_chart_url || '')
+        setCaseStage(data.case_stage || '收件')
+        setInspectionUnit(data.inspection_unit || '')
       })
   }, [])
 
@@ -295,6 +301,8 @@ export default function NewIntakePage() {
     xrfChartUrl,
     operator,
     status,
+    caseStage,
+    inspectionUnit,
   })
 
   const lookupCard = async () => {
@@ -464,6 +472,31 @@ export default function NewIntakePage() {
 
       <form id="intake-form" onSubmit={handleSubmit} className="max-w-2xl mx-auto p-4 space-y-6 pb-24">
         {error && <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 text-sm">{error}</div>}
+
+        {/* 案件進度 */}
+        <section className="bg-white rounded-2xl p-4 shadow-sm">
+          <h2 className="font-semibold text-gray-800 text-sm mb-3">案件進度</h2>
+          <div className="overflow-x-auto -mx-1 px-1">
+            <div className="flex gap-1.5 min-w-max">
+              {CASE_STAGES.map((stage, idx) => (
+                <button
+                  key={stage}
+                  type="button"
+                  onClick={() => setCaseStage(stage)}
+                  className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors ${
+                    caseStage === stage
+                      ? 'bg-amber-600 text-white border-amber-600'
+                      : CASE_STAGES.indexOf(caseStage as typeof CASE_STAGES[number]) > idx
+                      ? 'bg-amber-50 text-amber-600 border-amber-200'
+                      : 'bg-white text-gray-500 border-gray-200 hover:border-amber-300'
+                  }`}
+                >
+                  {idx + 1}. {stage}
+                </button>
+              ))}
+            </div>
+          </div>
+        </section>
 
         {/* 真品模組（可搜尋，CC/RC 連動） */}
         {!isIC && (
@@ -639,7 +672,7 @@ export default function NewIntakePage() {
             )}
           </div>
 
-          {/* 日期 */}
+          {/* 日期 + 送檢單位 */}
           <div className="grid grid-cols-1 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">送檢日 *</label>
@@ -648,6 +681,16 @@ export default function NewIntakePage() {
                 value={submissionDate}
                 onChange={e => setSubmissionDate(e.target.value)}
                 required
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:outline-none focus:border-amber-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">送檢單位</label>
+              <input
+                type="text"
+                value={inspectionUnit}
+                onChange={e => setInspectionUnit(e.target.value)}
+                placeholder="例：XRF 科學檢測室、碳14 實驗室..."
                 className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:outline-none focus:border-amber-500"
               />
             </div>
