@@ -3,6 +3,7 @@ import { useEffect, useState, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import BarcodeScanner from '@/components/BarcodeScanner'
+import { CASE_STAGES } from '@/lib/formData'
 
 interface Intake {
   id: number
@@ -83,17 +84,17 @@ export default function HomePage() {
 
   const handleFolderScan = async (scanned: string) => {
     setFolderScanner(false)
-    // 先嘗試用條碼查詢對應客戶
     try {
       const res = await fetch(`/api/intakes?barcode=${encodeURIComponent(scanned)}`)
       const data = await res.json()
-      if (data?.customer_name) {
-        setNewFolderName(data.customer_name)
-        setFolderSearch('')
+      if (data?.id) {
+        // 條碼已建檔 → 直接進入報告編輯頁
+        setNewFolderOpen(false)
+        router.push(`/new?edit=${data.id}`)
         return
       }
     } catch { /* noop */ }
-    // 查無結果：用掃描內容作為搜尋詞
+    // 查無結果：用掃描內容作為客戶搜尋詞
     setFolderSearch(scanned)
   }
 
@@ -103,6 +104,7 @@ export default function HomePage() {
 
   const handleSearchScan = async (scanned: string) => {
     setSearchScanner(false)
+    // 1. 以條碼查詢
     try {
       const res = await fetch(`/api/intakes?barcode=${encodeURIComponent(scanned)}`)
       const data = await res.json()
@@ -111,6 +113,13 @@ export default function HomePage() {
         return
       }
     } catch { /* noop */ }
+    // 2. 以 item_code 在已載入清單中比對（QR 可能印的是代碼而非條碼）
+    const byCode = intakes.find(i => i.item_code === scanned)
+    if (byCode) {
+      router.push(`/new?edit=${byCode.id}`)
+      return
+    }
+    // 3. 找不到：塞進搜尋欄供手動過濾
     setSearch(scanned)
   }
 
@@ -178,6 +187,7 @@ export default function HomePage() {
       if (key === 'inspectionUnit')  return { ...i, inspection_unit:  val ?? '' }
       if (key === 'size')            return { ...i, size:             val ?? '' }
       if (key === 'weight')          return { ...i, weight:           val ?? '' }
+      if (key === 'caseStage')       return { ...i, case_stage:       val ?? '收件' }
       return i
     }))
     // 清掉該欄位的暫存
@@ -629,6 +639,15 @@ export default function HomePage() {
                                             {RESULT_TAGS.map(r => <option key={r.label} value={r.value}>{r.label}</option>)}
                                           </select>
                                         </div>
+
+                                        {/* 進度 */}
+                                        <select
+                                          value={intake.case_stage || '收件'}
+                                          onChange={e => quickPatch(intake.id, { caseStage: e.target.value })}
+                                          className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white text-gray-700 focus:outline-none focus:border-amber-400"
+                                        >
+                                          {CASE_STAGES.map(s => <option key={s} value={s}>{s}</option>)}
+                                        </select>
 
                                         {/* 送檢單位 tags */}
                                         <div className="flex items-center gap-1 flex-wrap">
