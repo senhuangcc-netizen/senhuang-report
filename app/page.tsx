@@ -18,7 +18,15 @@ interface Intake {
   report_path?: string
   case_stage?: string
   photo_stages?: string
+  inspection_unit?: string
 }
+
+const BUILDING_TYPES = ['古玉器', '古銅器', '瓷器', '粉質佛牌', '金屬佛牌'] as const
+const RESULT_TAGS = [
+  { label: 'CC', value: 'C.C. (Clearly-Consistent)，與該年代真品特徵吻合', color: 'bg-green-600 text-white border-green-600' },
+  { label: 'RC', value: 'R.C.(Roughly-Consistent)，與該年代真品特徵大致吻合', color: 'bg-amber-500 text-white border-amber-500' },
+  { label: 'IC', value: 'I.C.(In-Consistent)，與該年代真品特徵不吻合', color: 'bg-red-600 text-white border-red-600' },
+] as const
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   draft:     { label: '草稿',     color: 'bg-gray-100 text-gray-500' },
@@ -44,6 +52,13 @@ export default function HomePage() {
   const [folderSearch,     setFolderSearch]     = useState('')
   const [folderScanner,    setFolderScanner]    = useState(false)
   const [searchScanner,    setSearchScanner]    = useState(false)
+
+  // 送檢單位管理
+  const [inspectionUnits,  setInspectionUnits]  = useState<string[]>([])
+  const [addingUnit,       setAddingUnit]        = useState(false)
+  const [newUnitName,      setNewUnitName]       = useState('')
+  // 快速儲存狀態
+  const [quickSaved,       setQuickSaved]        = useState<number | null>(null)
 
   const openNewFolder = () => {
     setNewFolderName('')
@@ -136,7 +151,50 @@ export default function HomePage() {
     fetch('/api/intakes')
       .then(r => r.json())
       .then(data => { setIntakes(Array.isArray(data) ? data : []); setLoading(false) })
+    fetch('/api/inspection-units')
+      .then(r => r.json())
+      .then(list => { if (Array.isArray(list)) setInspectionUnits(list) })
   }, [])
+
+  const quickPatch = async (id: number, field: Record<string, string | null>) => {
+    await fetch(`/api/intakes/${id}/quick`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(field),
+    })
+    const key = Object.keys(field)[0]
+    const val = Object.values(field)[0]
+    setIntakes(prev => prev.map(i => {
+      if (i.id !== id) return i
+      if (key === 'buildingType')    return { ...i, building_type:    val ?? '' }
+      if (key === 'appraisalResult') return { ...i, appraisal_result: val ?? '' }
+      if (key === 'inspectionUnit')  return { ...i, inspection_unit:  val ?? '' }
+      return i
+    }))
+    setQuickSaved(id)
+    setTimeout(() => setQuickSaved(s => s === id ? null : s), 1500)
+  }
+
+  const addInspectionUnit = async () => {
+    if (!newUnitName.trim()) return
+    const res = await fetch('/api/inspection-units', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: newUnitName.trim() }),
+    })
+    setInspectionUnits(await res.json())
+    setNewUnitName('')
+    setAddingUnit(false)
+  }
+
+  const removeInspectionUnit = async (name: string) => {
+    const res = await fetch('/api/inspection-units', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    })
+    setInspectionUnits(await res.json())
+  }
 
   const years = useMemo(() => {
     const ys = new Set(
@@ -523,8 +581,73 @@ export default function HomePage() {
                                   <span className="bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full border border-amber-100">{intake.building_type}</span>
                                 )}
                                 {resultShort && <span className={`font-medium ${resultColor}`}>{resultShort}</span>}
+                                {intake.inspection_unit && <span className="text-gray-500">🔬 {intake.inspection_unit}</span>}
                                 <span>📅 {intake.submission_date || intake.created_at?.slice(0, 10)}</span>
                                 <span>👤 {intake.operator}</span>
+                              </div>
+
+                              {/* 快速編輯列 */}
+                              <div className="border border-gray-200 rounded-xl bg-white p-2.5 space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-xs text-gray-500 font-medium">快速編輯</span>
+                                  {quickSaved === intake.id && <span className="text-xs text-green-600">✓ 已儲存</span>}
+                                </div>
+
+                                {/* 建單類型 */}
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="text-xs text-gray-400 w-12 shrink-0">類型</span>
+                                  {BUILDING_TYPES.map(t => (
+                                    <button key={t} onClick={() => quickPatch(intake.id, { buildingType: intake.building_type === t ? null : t })}
+                                      className={`text-xs px-2 py-0.5 rounded-lg border transition-colors ${
+                                        intake.building_type === t
+                                          ? 'bg-amber-600 text-white border-amber-600'
+                                          : 'border-gray-200 text-gray-600 hover:border-amber-400'
+                                      }`}>{t}</button>
+                                  ))}
+                                </div>
+
+                                {/* 鑑定結果 */}
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="text-xs text-gray-400 w-12 shrink-0">結果</span>
+                                  {RESULT_TAGS.map(r => {
+                                    const active = intake.appraisal_result === r.value
+                                    return (
+                                      <button key={r.label} onClick={() => quickPatch(intake.id, { appraisalResult: active ? null : r.value })}
+                                        className={`text-xs px-2.5 py-0.5 rounded-lg border font-bold transition-colors ${
+                                          active ? r.color : 'border-gray-200 text-gray-600 hover:border-gray-400'
+                                        }`}>{r.label}</button>
+                                    )
+                                  })}
+                                </div>
+
+                                {/* 送檢單位 */}
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="text-xs text-gray-400 w-12 shrink-0">送檢</span>
+                                  {inspectionUnits.map(u => (
+                                    <button key={u} onClick={() => quickPatch(intake.id, { inspectionUnit: intake.inspection_unit === u ? null : u })}
+                                      className={`text-xs px-2 py-0.5 rounded-lg border transition-colors group/unit relative ${
+                                        intake.inspection_unit === u
+                                          ? 'bg-blue-600 text-white border-blue-600'
+                                          : 'border-gray-200 text-gray-600 hover:border-blue-400'
+                                      }`}>
+                                      {u}
+                                      <span onClick={e => { e.stopPropagation(); removeInspectionUnit(u) }}
+                                        className="hidden group-hover/unit:inline ml-1 text-xs opacity-60 hover:opacity-100">×</span>
+                                    </button>
+                                  ))}
+                                  {addingUnit ? (
+                                    <div className="flex items-center gap-1">
+                                      <input autoFocus value={newUnitName} onChange={e => setNewUnitName(e.target.value)}
+                                        onKeyDown={e => { if (e.key === 'Enter') addInspectionUnit(); if (e.key === 'Escape') setAddingUnit(false) }}
+                                        className="text-xs border border-gray-300 rounded-lg px-2 py-0.5 w-20 focus:outline-none focus:border-blue-400" placeholder="單位名稱" />
+                                      <button onClick={addInspectionUnit} className="text-xs text-blue-600 hover:text-blue-800">確認</button>
+                                      <button onClick={() => { setAddingUnit(false); setNewUnitName('') }} className="text-xs text-gray-400 hover:text-gray-600">✕</button>
+                                    </div>
+                                  ) : (
+                                    <button onClick={() => setAddingUnit(true)}
+                                      className="text-xs px-2 py-0.5 rounded-lg border border-dashed border-gray-300 text-gray-400 hover:border-blue-400 hover:text-blue-500">+ 新增</button>
+                                  )}
+                                </div>
                               </div>
                               {/* 拍照子進度 */}
                               {intake.case_stage === '拍照' && (() => {

@@ -81,6 +81,13 @@ export async function ensureSchema() {
     )
   `
   await sql`
+    CREATE TABLE IF NOT EXISTS inspection_units (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL UNIQUE,
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `
+  await sql`
     CREATE TABLE IF NOT EXISTS customers (
       id SERIAL PRIMARY KEY,
       name TEXT NOT NULL,

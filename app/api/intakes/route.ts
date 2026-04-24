@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
   const { rows } = await sql`
     SELECT id, customer_name, item_code, building_type, appraisal_result,
            genuine_preset, status, operator, submission_date, report_path,
-           case_stage, photo_stages, created_at
+           case_stage, photo_stages, inspection_unit, created_at
     FROM intakes ORDER BY created_at DESC
   `
   return NextResponse.json(rows)
