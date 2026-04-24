@@ -18,7 +18,10 @@ let cachedToken: { token: string; expires: number } | null = null
 async function getServiceAccountToken(): Promise<string> {
   if (cachedToken && Date.now() < cachedToken.expires) return cachedToken.token
 
-  const key = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY!)
+  const raw = process.env.GOOGLE_SERVICE_ACCOUNT_KEY!
+  const key = JSON.parse(raw)
+  // Railway may store \n as literal \\n — normalize back to real newlines
+  if (key.private_key) key.private_key = key.private_key.replace(/\\n/g, '\n')
   const now = Math.floor(Date.now() / 1000)
   const header = Buffer.from(JSON.stringify({ alg: 'RS256', typ: 'JWT' })).toString('base64url')
   const payload = Buffer.from(JSON.stringify({
@@ -92,7 +95,11 @@ function intakeToRow(intake: Record<string, any>): string[] {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function syncIntake(intake: Record<string, any>) {
-  if (!process.env.GOOGLE_SERVICE_ACCOUNT_KEY || !process.env.GOOGLE_SHEET_ID) return
+  if (!process.env.GOOGLE_SERVICE_ACCOUNT_KEY || !process.env.GOOGLE_SHEET_ID) {
+    console.log('[sheets] skipped: env vars missing')
+    return
+  }
+  console.log('[sheets] sync start id=', intake.id)
   try {
     const data = await reportSheetReq('GET', '/values/Sheet1!A:A')
     const values: string[][] = data.values ?? []
@@ -117,6 +124,7 @@ export async function syncIntake(intake: Record<string, any>) {
         values: [intakeToRow(intake)],
       })
     }
+    console.log('[sheets] sync done id=', intake.id)
   } catch (e) {
     console.error('[sheets] sync error:', e)
   }

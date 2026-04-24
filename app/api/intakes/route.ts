@@ -64,5 +64,5 @@ export async function POST(req: NextRequest) {
   const { rows: newRows } = await sql`SELECT * FROM intakes WHERE id = ${id}`
   syncIntake(newRows[0]) // 非阻塞
 
-  return NextResponse.json({ id, folderPath: folderName })
+  return NextResponse.json({ id, itemCode: autoCode, folderPath: folderName })
 }

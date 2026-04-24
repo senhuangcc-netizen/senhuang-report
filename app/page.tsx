@@ -41,7 +41,7 @@ export default function HomePage() {
   const submitNewFolder = () => {
     if (!newFolderName.trim()) return
     setNewFolderOpen(false)
-    router.push(`/new?customer=${encodeURIComponent(newFolderName.trim())}`)
+    router.push(`/scan?customer=${encodeURIComponent(newFolderName.trim())}`)
   }
 
   // 刪除確認 Modal
@@ -165,6 +165,7 @@ export default function HomePage() {
               autoFocus
               className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-amber-500"
             />
+            <p className="text-xs text-gray-400">建立後可批次掃描多件條碼</p>
             <div className="flex gap-2">
               <button
                 onClick={() => setNewFolderOpen(false)}
@@ -174,7 +175,7 @@ export default function HomePage() {
                 onClick={submitNewFolder}
                 disabled={!newFolderName.trim()}
                 className="flex-1 px-4 py-2 bg-amber-600 text-white text-sm rounded-xl font-medium hover:bg-amber-700 disabled:opacity-40"
-              >建立</button>
+              >建立 →掃描</button>
             </div>
           </div>
         </div>
