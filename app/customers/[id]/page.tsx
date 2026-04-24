@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
+import Link from 'next/link'
 import { BUILDING_TYPES } from '@/lib/formData'
 
 const COLLECTION_TYPES = [...BUILDING_TYPES, '其他'] as const
@@ -75,7 +76,7 @@ export default function CustomerEditPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b px-4 py-3 flex items-center gap-3 shadow-sm">
-        <button onClick={() => router.push('/customers')} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">←</button>
+        <Link href="/customers" className="text-gray-400 hover:text-gray-600 text-2xl leading-none">←</Link>
         <h1 className="font-bold text-gray-900 text-lg">{id === 'new' ? '新增客戶' : '編輯客戶'}</h1>
       </header>
 

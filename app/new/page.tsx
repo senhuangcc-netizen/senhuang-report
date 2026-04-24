@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { BUILDING_TYPES, BuildingType, APPRAISAL_RESULTS, GENUINE_PRESETS, CASE_STAGES } from '@/lib/formData'
 import SearchableSelect from '@/components/SearchableSelect'
 import CategoryFields from '@/components/CategoryFields'
@@ -437,7 +438,7 @@ export default function NewIntakePage() {
       <div className="sticky top-0 bg-white border-b z-40 px-4 py-3 shadow-sm space-y-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button onClick={() => router.push('/')} className="text-gray-400 hover:text-gray-600">←</button>
+            <Link href="/" className="text-gray-400 hover:text-gray-600">←</Link>
             <h1 className="font-bold text-gray-900 whitespace-nowrap">{draftId ? `編輯草稿 #${draftId}` : '新增建單'}</h1>
           </div>
           <div className="flex items-center gap-1">

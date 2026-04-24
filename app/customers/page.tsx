@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import QRCode from 'qrcode'
 
 interface Customer {
@@ -129,12 +130,12 @@ export default function CustomersPage() {
       )}
 
       <header className="bg-white border-b px-4 py-3 flex items-center gap-3 shadow-sm">
-        <button onClick={() => router.push('/')} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">←</button>
+        <Link href="/" className="text-gray-400 hover:text-gray-600 text-2xl leading-none">←</Link>
         <h1 className="font-bold text-gray-900 text-lg flex-1">客戶名單</h1>
         <button onClick={openQr}
           className="px-3 py-2 border border-gray-200 text-gray-600 text-sm rounded-xl font-medium hover:bg-gray-50 mr-1">登記QR</button>
-        <button onClick={() => router.push('/customers/new')}
-          className="px-4 py-2 bg-amber-600 text-white text-sm rounded-xl font-medium hover:bg-amber-700">新增客戶</button>
+        <Link href="/customers/new"
+          className="px-4 py-2 bg-amber-600 text-white text-sm rounded-xl font-medium hover:bg-amber-700">新增客戶</Link>
       </header>
 
       <div className="max-w-lg mx-auto p-4 space-y-3">
@@ -160,11 +161,8 @@ export default function CustomersPage() {
             let types: string[] = []
             try { types = JSON.parse(c.collection_types || '[]') } catch { /* noop */ }
             return (
-              <div key={c.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 group">
-                <div
-                  className="p-4 flex items-center gap-3 cursor-pointer hover:bg-gray-50 rounded-2xl transition-colors"
-                  onClick={() => router.push(`/customers/${c.id}`)}
-                >
+              <div key={c.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 group relative">
+                <Link href={`/customers/${c.id}`} className="p-4 flex items-center gap-3 hover:bg-gray-50 rounded-2xl transition-colors block">
                   <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 font-bold text-sm shrink-0">
                     {c.name?.slice(0, 1) || '?'}
                   </div>
@@ -183,19 +181,13 @@ export default function CustomersPage() {
                       </div>
                     )}
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button
-                      onClick={e => {
-                        e.stopPropagation()
-                        setConfirmInput('')
-                        setDeleteTarget(c)
-                      }}
-                      className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-500 text-sm px-2 py-1 rounded-lg hover:bg-red-50 transition-all"
-                      title="刪除"
-                    >🗑</button>
-                    <span className="text-gray-300 text-sm">›</span>
-                  </div>
-                </div>
+                  <span className="text-gray-300 text-sm shrink-0">›</span>
+                </Link>
+                <button
+                  onClick={() => { setConfirmInput(''); setDeleteTarget(c) }}
+                  className="absolute right-10 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-500 text-sm px-2 py-1 rounded-lg hover:bg-red-50 transition-all"
+                  title="刪除"
+                >🗑</button>
               </div>
             )
           })}

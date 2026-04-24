@@ -1,6 +1,7 @@
 'use client'
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import BarcodeScanner from '@/components/BarcodeScanner'
 
 type Mode = 'intake' | 'xray'
@@ -117,7 +118,7 @@ export default function ScanPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b px-4 py-3 flex items-center gap-3 shadow-sm">
-        <button onClick={() => router.push('/')} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">←</button>
+        <Link href="/" className="text-gray-400 hover:text-gray-600 text-2xl leading-none">←</Link>
         <div className="flex-1">
           <h1 className="font-bold text-gray-900 text-lg">掃描收件</h1>
           <p className="text-xs text-gray-600">{mode === 'intake' ? '批次建件：掃描後自動建立草稿' : 'X光拍攝：掃描後進入X光表單'}</p>

@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
+import Link from 'next/link'
 import { CASE_STAGES } from '@/lib/formData'
 
 interface Intake {
@@ -63,7 +64,7 @@ export default function IntakePreviewPage() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center text-gray-400 gap-3">
         <p>找不到此建單</p>
-        <button onClick={() => router.push('/')} className="text-amber-600 text-sm hover:underline">← 返回列表</button>
+        <Link href="/" className="text-amber-600 text-sm hover:underline">← 返回列表</Link>
       </div>
     )
   }
@@ -87,23 +88,23 @@ export default function IntakePreviewPage() {
       {/* 頂部導覽 */}
       <div className="sticky top-0 bg-white border-b z-40 px-4 py-3 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-3">
-          <button onClick={() => router.push('/')} className="text-gray-400 hover:text-gray-600 text-lg">←</button>
+          <Link href="/" className="text-gray-400 hover:text-gray-600 text-lg">←</Link>
           <h1 className="font-bold text-gray-900">建單預覽</h1>
           <span className={`text-xs px-2 py-0.5 rounded-full ${statusColor}`}>{statusLabel}</span>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => router.push(`/intake/${id}/report`)}
+          <Link
+            href={`/intake/${id}/report`}
             className="px-3 py-1.5 bg-amber-600 text-white text-sm rounded-lg font-medium hover:bg-amber-700"
           >
             報告預覽
-          </button>
-          <button
-            onClick={() => router.push(`/new?edit=${id}`)}
+          </Link>
+          <Link
+            href={`/new?edit=${id}`}
             className="px-3 py-1.5 border border-gray-300 text-gray-700 text-sm rounded-lg font-medium hover:bg-gray-50"
           >
             繼續編輯
-          </button>
+          </Link>
         </div>
       </div>
 

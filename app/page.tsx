@@ -335,12 +335,12 @@ export default function HomePage() {
         <div className="flex gap-2">
           <div className="flex-1 relative">
             <div className="flex">
-              <button
-                onClick={() => router.push('/customers/new')}
-                className="flex-1 py-2.5 border border-gray-200 text-gray-700 text-sm rounded-l-xl font-semibold hover:bg-gray-50 border-r-0"
+              <Link
+                href="/customers/new"
+                className="flex-1 py-2.5 border border-gray-200 text-gray-700 text-sm rounded-l-xl font-semibold hover:bg-gray-50 border-r-0 text-center"
               >
                 新增客戶
-              </button>
+              </Link>
               <button
                 onClick={() => setCustomerMenuOpen(v => !v)}
                 className="px-2.5 py-2.5 border border-gray-200 text-gray-400 text-xs rounded-r-xl hover:bg-gray-50"
@@ -348,10 +348,11 @@ export default function HomePage() {
             </div>
             {customerMenuOpen && (
               <div className="absolute z-30 left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
-                <button
-                  onClick={() => { setCustomerMenuOpen(false); router.push('/customers') }}
-                  className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-amber-50 border-b border-gray-50"
-                >客戶名單</button>
+                <Link
+                  href="/customers"
+                  onClick={() => setCustomerMenuOpen(false)}
+                  className="block w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-amber-50 border-b border-gray-50"
+                >客戶名單</Link>
               </div>
             )}
           </div>
@@ -526,14 +527,14 @@ export default function HomePage() {
                                 )
                               })()}
                               <div className="flex gap-1.5 flex-wrap items-center">
-                                <button
-                                  onClick={() => router.push(`/new?edit=${intake.id}`)}
+                                <Link
+                                  href={`/new?edit=${intake.id}`}
                                   className="text-xs px-2.5 py-1.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-white"
                                 >
                                   編輯
-                                </button>
-                                <button
-                                  onClick={() => router.push(`/intake/${intake.id}/report`)}
+                                </Link>
+                                <Link
+                                  href={`/intake/${intake.id}/report`}
                                   className={`text-xs px-2.5 py-1.5 rounded-lg font-medium ${
                                     intake.status === 'completed'
                                       ? 'bg-green-600 text-white hover:bg-green-700'
@@ -541,7 +542,7 @@ export default function HomePage() {
                                   }`}
                                 >
                                   {intake.status === 'completed' ? '查看報告' : '報告預覽'}
-                                </button>
+                                </Link>
                                 {intake.status !== 'completed' && (
                                   <button
                                     onClick={() => generateReport(intake)}
