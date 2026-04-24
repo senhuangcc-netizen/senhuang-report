@@ -1,5 +1,5 @@
 'use client'
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { compressImage } from '@/lib/compressImage'
 
 interface InProgress {
@@ -12,6 +12,7 @@ interface Props {
   label?: string
   paths: string[]
   onChange: (paths: string[]) => void
+  onUploadingChange?: (uploading: boolean) => void
   folder: string
   category: string
   accept?: string
@@ -19,11 +20,16 @@ interface Props {
   collapseWhenFilled?: boolean
 }
 
-export default function SimplePhotoUpload({ label, paths, onChange, folder, category, accept = 'image/*', showCamera = true, collapseWhenFilled = false }: Props) {
+export default function SimplePhotoUpload({ label, paths, onChange, onUploadingChange, folder, category, accept = 'image/*', showCamera = true, collapseWhenFilled = false }: Props) {
   const inputRef  = useRef<HTMLInputElement>(null)
   const cameraRef = useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = useState(false)
   const [inProgress, setInProgress] = useState<InProgress[]>([])
+
+  // 通知上層是否有照片正在上傳
+  useEffect(() => {
+    onUploadingChange?.(inProgress.length > 0)
+  }, [inProgress.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const isFilled = collapseWhenFilled && (paths.length > 0 || inProgress.length > 0)
 

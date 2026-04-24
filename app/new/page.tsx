@@ -109,7 +109,8 @@ export default function NewIntakePage() {
     setPhotoStages(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])
 
   // 收件照（SimplePhotoUpload，路徑陣列）
-  const [intakePhotos, setIntakePhotos] = useState<string[]>([])
+  const [intakePhotos,         setIntakePhotos]         = useState<string[]>([])
+  const [intakePhotosUploading,setIntakePhotosUploading] = useState(false)
 
   // 照片 / XRF
   const [photos,       setPhotos]       = useState<PhotoItem[]>([])
@@ -347,6 +348,11 @@ export default function NewIntakePage() {
   }
 
   const saveDraft = async () => {
+    if (intakePhotosUploading) {
+      setError('收件照上傳中，請稍後再儲存')
+      setTimeout(() => setError(''), 2500)
+      return
+    }
     setDraftSaving(true)
     try {
       let currentDraftId = draftId
@@ -544,6 +550,7 @@ export default function NewIntakePage() {
           <SimplePhotoUpload
             paths={intakePhotos}
             onChange={setIntakePhotos}
+            onUploadingChange={setIntakePhotosUploading}
             folder={folderName || 'intake_photos'}
             category="收件照"
             collapseWhenFilled
