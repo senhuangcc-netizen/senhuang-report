@@ -43,6 +43,7 @@ export default function HomePage() {
   const [customerList,     setCustomerList]     = useState<string[]>([])
   const [folderSearch,     setFolderSearch]     = useState('')
   const [folderScanner,    setFolderScanner]    = useState(false)
+  const [searchScanner,    setSearchScanner]    = useState(false)
 
   const openNewFolder = () => {
     setNewFolderName('')
@@ -79,6 +80,19 @@ export default function HomePage() {
   const folderSuggestions = customerList.filter(n =>
     !folderSearch || n.toLowerCase().includes(folderSearch.toLowerCase())
   )
+
+  const handleSearchScan = async (scanned: string) => {
+    setSearchScanner(false)
+    try {
+      const res = await fetch(`/api/intakes?barcode=${encodeURIComponent(scanned)}`)
+      const data = await res.json()
+      if (data?.id) {
+        router.push(`/new?edit=${data.id}`)
+        return
+      }
+    } catch { /* noop */ }
+    setSearch(scanned)
+  }
 
   // 刪除確認 Modal
   type DeleteTarget =
@@ -266,13 +280,13 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* 資料夾掃描器 */}
+      {/* 資料夾搜尋掃描器 */}
       {folderScanner && (
-        <BarcodeScanner
-          onScan={handleFolderScan}
-          onClose={() => setFolderScanner(false)}
-          keepOpen={false}
-        />
+        <BarcodeScanner onScan={handleFolderScan} onClose={() => setFolderScanner(false)} keepOpen={false} />
+      )}
+      {/* 主搜尋掃描器 */}
+      {searchScanner && (
+        <BarcodeScanner onScan={handleSearchScan} onClose={() => setSearchScanner(false)} keepOpen={false} />
       )}
 
       {/* 刪除確認 Modal */}
@@ -379,13 +393,20 @@ export default function HomePage() {
           >
             {years.map(y => <option key={y} value={y} className="text-gray-900">{y} 年</option>)}
           </select>
-          <input
-            type="search"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="搜尋客戶、編碼、類型..."
-            className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-amber-500 bg-white shadow-sm"
-          />
+          <div className="flex-1 flex gap-1.5">
+            <input
+              type="search"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="搜尋客戶、編碼、類型..."
+              className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-amber-500 bg-white shadow-sm"
+            />
+            <button
+              onClick={() => setSearchScanner(true)}
+              className="px-3 py-2.5 border border-gray-200 bg-white rounded-xl text-gray-500 hover:text-amber-700 hover:border-amber-300 shadow-sm text-base"
+              title="掃描條碼搜尋"
+            >⌖</button>
+          </div>
         </div>
 
         {/* 月份 tabs（橫向可捲動） */}
@@ -463,11 +484,6 @@ export default function HomePage() {
                     <span className="text-xs bg-green-50 text-green-600 px-2 py-0.5 rounded-full">{completedCount} 完成</span>
                   )}
                   <span className="ml-auto text-gray-300 text-sm">{folderOpen ? '▾' : '▸'}</span>
-                  <button
-                    onClick={e => { e.stopPropagation(); setConfirmInput(''); setDeleteTarget({ type: 'folder', customerName: cname }) }}
-                    className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 text-sm px-1 transition-all"
-                    title="刪除整個資料夾"
-                  >🗑</button>
                 </div>
 
                 {/* 第二層：資料夾內的建單列表 */}
@@ -574,6 +590,13 @@ export default function HomePage() {
                         </div>
                       )
                     })}
+                    {/* 刪除整個資料夾（放在展開區底部，避免誤按） */}
+                    <div className="px-4 py-2.5 flex justify-end border-t border-gray-50">
+                      <button
+                        onClick={() => { setConfirmInput(''); setDeleteTarget({ type: 'folder', customerName: cname }) }}
+                        className="text-xs text-gray-400 hover:text-red-500 hover:bg-red-50 px-2.5 py-1.5 rounded-lg transition-colors"
+                      >🗑 刪除整個資料夾</button>
+                    </div>
                   </div>
                 )}
               </div>

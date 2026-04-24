@@ -6,6 +6,7 @@ import { BUILDING_TYPES, BuildingType, APPRAISAL_RESULTS, GENUINE_PRESETS, CASE_
 import SearchableSelect from '@/components/SearchableSelect'
 import CategoryFields from '@/components/CategoryFields'
 import PhotoUpload, { PhotoItem } from '@/components/PhotoUpload'
+import SimplePhotoUpload from '@/components/SimplePhotoUpload'
 import BarcodeScanner from '@/components/BarcodeScanner'
 import OperatorManager from '@/components/OperatorManager'
 
@@ -106,6 +107,9 @@ export default function NewIntakePage() {
 
   const togglePhotoStage = (s: string) =>
     setPhotoStages(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])
+
+  // 收件照（SimplePhotoUpload，路徑陣列）
+  const [intakePhotos, setIntakePhotos] = useState<string[]>([])
 
   // 照片 / XRF
   const [photos,       setPhotos]       = useState<PhotoItem[]>([])
@@ -235,8 +239,8 @@ export default function NewIntakePage() {
         try {
           const saved: { category: string; path: string }[] = JSON.parse(data.photos || '[]')
           setExistingPhotoData(saved)
-          // 將已存照片還原到 PhotoUpload 顯示（用 Blob URL 作為 preview）
-          setPhotos(saved.map(p => ({
+          setIntakePhotos(saved.filter(p => p.category === '收件照').map(p => p.path))
+          setPhotos(saved.filter(p => p.category !== '收件照').map(p => ({
             category: p.category as '主體照' | '顯微照' | '360照',
             preview: p.path,
             file: new File([], p.path.split('/').pop() || 'photo'),
@@ -304,7 +308,10 @@ export default function NewIntakePage() {
     note,
     categoryData,
     genuinePreset,
-    photos: photos.filter(p => p.savedPath).map(p => ({ category: p.category, path: p.savedPath! })),
+    photos: [
+      ...intakePhotos.map(p => ({ category: '收件照', path: p })),
+      ...photos.filter(p => p.savedPath).map(p => ({ category: p.category, path: p.savedPath! })),
+    ],
     xrfPdfUrl,
     xrfChartUrl,
     operator,
@@ -526,6 +533,17 @@ export default function NewIntakePage() {
               </div>
             </div>
           )}
+        </section>
+
+        {/* 收件照 */}
+        <section className="bg-white rounded-2xl p-4 shadow-sm">
+          <h2 className="font-semibold text-gray-800 border-b pb-2 mb-3">收件照</h2>
+          <SimplePhotoUpload
+            paths={intakePhotos}
+            onChange={setIntakePhotos}
+            folder={folderName || 'intake_photos'}
+            category="收件照"
+          />
         </section>
 
         {/* 真品模組（可搜尋，CC/RC 連動） */}

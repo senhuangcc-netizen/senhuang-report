@@ -1,5 +1,6 @@
 'use client'
 import { useCallback, useRef, useState } from 'react'
+import { compressImage } from '@/lib/compressImage'
 
 export interface PhotoItem {
   category: '主體照' | '顯微照' | '360照'
@@ -25,8 +26,9 @@ export default function PhotoUpload({ photos, onChange, folderName }: Props) {
 
   const addFiles = useCallback(async (files: FileList | File[], category: typeof CATEGORIES[number]) => {
     const newPhotos: PhotoItem[] = []
-    for (const file of Array.from(files)) {
-      if (!file.type.startsWith('image/')) continue
+    for (const raw of Array.from(files)) {
+      if (!raw.type.startsWith('image/')) continue
+      const file = await compressImage(raw)
       const preview = URL.createObjectURL(file)
       newPhotos.push({ category, preview, file })
 

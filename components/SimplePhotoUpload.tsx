@@ -1,5 +1,6 @@
 'use client'
 import { useCallback, useRef, useState } from 'react'
+import { compressImage } from '@/lib/compressImage'
 
 interface InProgress {
   id: number
@@ -25,7 +26,7 @@ export default function SimplePhotoUpload({ label, paths, onChange, folder, cate
 
   const uploadFiles = useCallback(async (files: FileList | null) => {
     if (!files || !files.length) return
-    const arr = Array.from(files)
+    const arr = await Promise.all(Array.from(files).map(compressImage))
 
     const pending: InProgress[] = arr.map(f => ({
       id: Date.now() + Math.random(),

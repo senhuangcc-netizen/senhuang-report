@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
   const barcode = req.nextUrl.searchParams.get('barcode')
   if (barcode) {
     const { rows } = await sql`
-      SELECT customer_name FROM intakes WHERE barcode = ${barcode} ORDER BY created_at DESC LIMIT 1
+      SELECT id, customer_name, item_code FROM intakes WHERE barcode = ${barcode} ORDER BY created_at DESC LIMIT 1
     `
     return NextResponse.json(rows[0] || null)
   }
