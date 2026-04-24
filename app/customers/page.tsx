@@ -1,6 +1,7 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import QRCode from 'qrcode'
 
 interface Customer {
   id: number
@@ -20,6 +21,19 @@ export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([])
   const [loading,   setLoading]   = useState(true)
   const [search,    setSearch]    = useState('')
+  const [qrOpen,    setQrOpen]    = useState(false)
+  const [qrDataUrl, setQrDataUrl] = useState('')
+  const qrGenerated = useRef(false)
+
+  const openQr = async () => {
+    setQrOpen(true)
+    if (!qrGenerated.current) {
+      const url = `${window.location.origin}/customers/register`
+      const dataUrl = await QRCode.toDataURL(url, { width: 300, margin: 2, color: { dark: '#92400e', light: '#fffbeb' } })
+      setQrDataUrl(dataUrl)
+      qrGenerated.current = true
+    }
+  }
 
   useEffect(() => {
     fetch('/api/customers')
@@ -34,9 +48,37 @@ export default function CustomersPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* 登記 QR Modal */}
+      {qrOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-xs p-6 space-y-4 text-center">
+            <h2 className="font-bold text-base text-gray-900">客戶登記 QR</h2>
+            <p className="text-xs text-gray-500">客戶掃描後進入自助填寫頁面<br />每次掃描都是全新空白表單</p>
+            {qrDataUrl
+              ? <img src={qrDataUrl} alt="QR Code" className="mx-auto rounded-xl" width={240} height={240} />
+              : <div className="w-60 h-60 mx-auto bg-amber-50 rounded-xl animate-pulse" />
+            }
+            <div className="flex gap-2">
+              <button
+                onClick={() => setQrOpen(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-600 text-sm rounded-xl hover:bg-gray-50"
+              >關閉</button>
+              <button
+                onClick={() => window.print()}
+                className="flex-1 px-4 py-2 bg-amber-600 text-white text-sm rounded-xl font-medium hover:bg-amber-700"
+              >列印</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <header className="bg-white border-b px-4 py-3 flex items-center gap-3 shadow-sm">
         <button onClick={() => router.push('/')} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">←</button>
         <h1 className="font-bold text-gray-900 text-lg flex-1">客戶名單</h1>
+        <button
+          onClick={openQr}
+          className="px-3 py-2 border border-gray-200 text-gray-600 text-sm rounded-xl font-medium hover:bg-gray-50 mr-1"
+        >登記QR</button>
         <button
           onClick={() => router.push('/customers/new')}
           className="px-4 py-2 bg-amber-600 text-white text-sm rounded-xl font-medium hover:bg-amber-700"

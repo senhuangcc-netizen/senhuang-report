@@ -1,8 +1,7 @@
 'use client'
-import { useEffect, useState, useMemo, useRef } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import QRCode from 'qrcode'
 
 interface Intake {
   id: number
@@ -40,20 +39,6 @@ export default function HomePage() {
   const [newFolderOpen, setNewFolderOpen] = useState(false)
   const [newFolderName, setNewFolderName] = useState('')
 
-  // 新增客戶 QR Modal
-  const [customerQrOpen, setCustomerQrOpen] = useState(false)
-  const [qrDataUrl,      setQrDataUrl]      = useState('')
-  const qrGenerated = useRef(false)
-
-  const openCustomerQr = async () => {
-    setCustomerQrOpen(true)
-    if (!qrGenerated.current) {
-      const url = `${window.location.origin}/customers/register`
-      const dataUrl = await QRCode.toDataURL(url, { width: 240, margin: 2, color: { dark: '#92400e', light: '#fffbeb' } })
-      setQrDataUrl(dataUrl)
-      qrGenerated.current = true
-    }
-  }
 
   const openNewFolder = () => { setNewFolderName(''); setNewFolderOpen(true) }
   const submitNewFolder = () => {
@@ -169,31 +154,6 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-gray-50">
 
-      {/* 新增客戶 QR Modal */}
-      {customerQrOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4 text-center">
-            <h2 className="font-bold text-base text-gray-900">新增客戶</h2>
-            <p className="text-sm text-gray-500">讓客戶掃描下方 QR Code 自行填寫資料</p>
-            {qrDataUrl
-              ? <img src={qrDataUrl} alt="QR Code" className="mx-auto rounded-xl" width={200} height={200} />
-              : <div className="w-[200px] h-[200px] mx-auto bg-amber-50 rounded-xl animate-pulse" />
-            }
-            <p className="text-xs text-gray-400">/customers/register</p>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setCustomerQrOpen(false)}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-600 text-sm rounded-xl hover:bg-gray-50"
-              >關閉</button>
-              <button
-                onClick={() => { setCustomerQrOpen(false); router.push('/customers') }}
-                className="flex-1 px-4 py-2 bg-amber-600 text-white text-sm rounded-xl font-medium hover:bg-amber-700"
-              >查看名單</button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* 新建資料夾 Modal */}
       {newFolderOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
@@ -292,7 +252,7 @@ export default function HomePage() {
             新資料夾
           </button>
           <button
-            onClick={openCustomerQr}
+            onClick={() => router.push('/customers/new')}
             className="flex-1 py-2.5 border border-gray-200 text-gray-700 text-sm rounded-xl font-semibold hover:bg-gray-50"
           >
             新增客戶
