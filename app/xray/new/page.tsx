@@ -66,10 +66,9 @@ export default function XrayNewPage() {
     : 'xray_unknown'
 
   const handleSave = async () => {
-    if (!customerName || !itemType || (itemType === '其他' && !itemCustom)) {
-      setError('請填寫客戶名稱與拍攝品項')
-      return
-    }
+    if (!customerName.trim()) { setError('請填寫客戶名稱'); return }
+    if (!itemType)            { setError('請選擇拍攝品項'); return }
+    if (itemType === '其他' && !itemCustom.trim()) { setError('請填寫自訂品項名稱'); return }
     setSaving(true)
     setError('')
     try {
@@ -221,8 +220,8 @@ export default function XrayNewPage() {
         {/* 儲存 */}
         <button
           onClick={handleSave}
-          disabled={saving}
-          className="w-full bg-amber-600 text-white font-bold py-4 rounded-2xl shadow-sm disabled:opacity-50 text-base"
+          disabled={saving || !customerName.trim() || !itemType}
+          className="w-full bg-amber-600 text-white font-bold py-4 rounded-2xl shadow-sm disabled:opacity-40 text-base"
         >
           {saving ? '儲存中…' : '儲存 X光照紀錄'}
         </button>

@@ -36,9 +36,9 @@ export default function HomePage() {
   const [openItems, setOpenItems] = useState<Set<number>>(new Set())
 
   // 新建資料夾 Modal
-  const [newFolderOpen, setNewFolderOpen] = useState(false)
-  const [newFolderName, setNewFolderName] = useState('')
-
+  const [newFolderOpen,   setNewFolderOpen]   = useState(false)
+  const [newFolderName,   setNewFolderName]   = useState('')
+  const [customerMenuOpen, setCustomerMenuOpen] = useState(false)
 
   const openNewFolder = () => { setNewFolderName(''); setNewFolderOpen(true) }
   const submitNewFolder = () => {
@@ -242,12 +242,28 @@ export default function HomePage() {
           </Link>
         </div>
         <div className="flex gap-2">
-          <button
-            onClick={() => router.push('/customers/new')}
-            className="flex-1 py-2.5 border border-gray-200 text-gray-700 text-sm rounded-xl font-semibold hover:bg-gray-50"
-          >
-            新增客戶
-          </button>
+          <div className="flex-1 relative">
+            <div className="flex">
+              <button
+                onClick={() => router.push('/customers/new')}
+                className="flex-1 py-2.5 border border-gray-200 text-gray-700 text-sm rounded-l-xl font-semibold hover:bg-gray-50 border-r-0"
+              >
+                新增客戶
+              </button>
+              <button
+                onClick={() => setCustomerMenuOpen(v => !v)}
+                className="px-2.5 py-2.5 border border-gray-200 text-gray-400 text-xs rounded-r-xl hover:bg-gray-50"
+              >▾</button>
+            </div>
+            {customerMenuOpen && (
+              <div className="absolute z-30 left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+                <button
+                  onClick={() => { setCustomerMenuOpen(false); router.push('/customers') }}
+                  className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-amber-50 border-b border-gray-50"
+                >客戶名單</button>
+              </div>
+            )}
+          </div>
           <button
             onClick={openNewFolder}
             className="flex-1 py-2.5 border border-amber-300 text-amber-700 text-sm rounded-xl font-semibold hover:bg-amber-50"
