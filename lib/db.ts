@@ -99,7 +99,7 @@ export async function nextItemCode(folderName: string): Promise<string> {
   // 序號 = 該資料夾現有件數 + 1
   const { rows: items } = await sql`SELECT COUNT(*) AS c FROM intakes WHERE folder_name = ${folderName}`
   const seq = parseInt(items[0].c) + 1
-  return `${letter}${seq}`
+  return `${letter}${String(seq).padStart(2, '0')}`
 }
 
 export async function logAudit(intakeId: number, operator: string, action: string, fields?: string) {

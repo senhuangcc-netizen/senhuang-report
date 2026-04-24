@@ -10,8 +10,13 @@ type ItemType = (typeof ITEM_TYPES)[number]
 function genXrayCode(barcode: string): string {
   const d = new Date()
   const date = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`
-  const prefix = barcode.replace(/\s/g, '').slice(0, 3).toUpperCase() || 'XXX'
-  return `${date}-${prefix}`
+  const clean = barcode.replace(/\s/g, '').toUpperCase()
+  // Extract first alpha char as letter, then next 2 digits (zero-padded) → e.g. K06
+  const letterMatch = clean.match(/[A-Z]/)
+  const letter = letterMatch ? letterMatch[0] : 'X'
+  const afterLetter = clean.slice((letterMatch?.index ?? 0) + 1)
+  const digits = (afterLetter.match(/\d+/g) || []).join('').slice(0, 2).padStart(2, '0')
+  return `${date}-${letter}${digits}`
 }
 
 export default function XrayNewPage() {
