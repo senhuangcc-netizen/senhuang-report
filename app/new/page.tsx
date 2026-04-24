@@ -63,8 +63,10 @@ export default function NewIntakePage() {
   })
 
   // 客戶名稱變動時自動產生第④欄序號（A-Z + 件序）
+  // 若正在編輯既有草稿（draftId 已設定），不覆蓋已載入的編碼
   useEffect(() => {
     if (!customerName.trim()) { setItemSequence(''); return }
+    if (draftId) return
     fetch(`/api/next-code?customerName=${encodeURIComponent(customerName)}`)
       .then(r => r.json())
       .then(d => { if (d.code) setItemSequence(d.code) })
