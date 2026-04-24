@@ -19,6 +19,9 @@ interface Intake {
   case_stage?: string
   photo_stages?: string
   inspection_unit?: string
+  size?: string
+  weight?: string
+  photos?: string
 }
 
 const BUILDING_TYPES = ['古玉器', '古銅器', '瓷器', '粉質佛牌', '金屬佛牌'] as const
@@ -59,6 +62,8 @@ export default function HomePage() {
   const [newUnitName,      setNewUnitName]       = useState('')
   // 快速儲存狀態
   const [quickSaved,       setQuickSaved]        = useState<number | null>(null)
+  // 尺寸/重量本地暫存（輸入中但未送出）
+  const [quickEditMap,     setQuickEditMap]      = useState<Record<number, { size?: string; weight?: string }>>({})
 
   const openNewFolder = () => {
     setNewFolderName('')
@@ -169,8 +174,18 @@ export default function HomePage() {
       if (key === 'buildingType')    return { ...i, building_type:    val ?? '' }
       if (key === 'appraisalResult') return { ...i, appraisal_result: val ?? '' }
       if (key === 'inspectionUnit')  return { ...i, inspection_unit:  val ?? '' }
+      if (key === 'size')            return { ...i, size:             val ?? '' }
+      if (key === 'weight')          return { ...i, weight:           val ?? '' }
       return i
     }))
+    // 清掉該欄位的暫存
+    if (key === 'size' || key === 'weight') {
+      setQuickEditMap(prev => {
+        const copy = { ...prev }
+        if (copy[id]) { delete copy[id][key as 'size' | 'weight']; if (!Object.keys(copy[id]).length) delete copy[id] }
+        return copy
+      })
+    }
     setQuickSaved(id)
     setTimeout(() => setQuickSaved(s => s === id ? null : s), 1500)
   }
@@ -587,68 +602,104 @@ export default function HomePage() {
                               </div>
 
                               {/* 快速編輯列 */}
-                              <div className="border border-gray-200 rounded-xl bg-white p-2.5 space-y-2">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-xs text-gray-500 font-medium">快速編輯</span>
-                                  {quickSaved === intake.id && <span className="text-xs text-green-600">✓ 已儲存</span>}
-                                </div>
+                              {(() => {
+                                let intakePhoto: string | null = null
+                                try {
+                                  const ps = JSON.parse(intake.photos || '[]') as { category: string; path: string }[]
+                                  intakePhoto = ps.find(p => p.category === '收件照')?.path ?? null
+                                } catch { /* noop */ }
+                                return (
+                                  <div className="border border-gray-100 rounded-xl bg-gray-50 p-2.5">
+                                    <div className="flex gap-2">
+                                      {/* 左欄：欄位 */}
+                                      <div className="flex-1 space-y-1.5 min-w-0">
+                                        {/* 建單類型 + 鑑定結果 下拉 */}
+                                        <div className="flex gap-1.5">
+                                          <select
+                                            value={intake.building_type || ''}
+                                            onChange={e => quickPatch(intake.id, { buildingType: e.target.value || null })}
+                                            className="flex-1 text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white text-gray-700 focus:outline-none focus:border-amber-400 min-w-0"
+                                          >
+                                            <option value="">建單類型</option>
+                                            {BUILDING_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                                          </select>
+                                          <select
+                                            value={intake.appraisal_result || ''}
+                                            onChange={e => quickPatch(intake.id, { appraisalResult: e.target.value || null })}
+                                            className="w-24 shrink-0 text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white text-gray-700 focus:outline-none focus:border-amber-400"
+                                          >
+                                            <option value="">鑑定結果</option>
+                                            {RESULT_TAGS.map(r => <option key={r.label} value={r.value}>{r.label}</option>)}
+                                          </select>
+                                        </div>
 
-                                {/* 建單類型 */}
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  <span className="text-xs text-gray-400 w-12 shrink-0">類型</span>
-                                  {BUILDING_TYPES.map(t => (
-                                    <button key={t} onClick={() => quickPatch(intake.id, { buildingType: intake.building_type === t ? null : t })}
-                                      className={`text-xs px-2 py-0.5 rounded-lg border transition-colors ${
-                                        intake.building_type === t
-                                          ? 'bg-amber-600 text-white border-amber-600'
-                                          : 'border-gray-200 text-gray-600 hover:border-amber-400'
-                                      }`}>{t}</button>
-                                  ))}
-                                </div>
+                                        {/* 送檢單位 tags */}
+                                        <div className="flex items-center gap-1 flex-wrap">
+                                          {inspectionUnits.map(u => (
+                                            <button key={u} onClick={() => quickPatch(intake.id, { inspectionUnit: intake.inspection_unit === u ? null : u })}
+                                              className={`text-xs px-2 py-0.5 rounded-lg border transition-colors group/unit relative ${
+                                                intake.inspection_unit === u
+                                                  ? 'bg-blue-600 text-white border-blue-600'
+                                                  : 'border-gray-200 text-gray-600 hover:border-blue-400'
+                                              }`}>
+                                              {u}
+                                              <span onClick={e => { e.stopPropagation(); removeInspectionUnit(u) }}
+                                                className="hidden group-hover/unit:inline ml-1 text-xs opacity-60 hover:opacity-100">×</span>
+                                            </button>
+                                          ))}
+                                          {addingUnit ? (
+                                            <div className="flex items-center gap-1">
+                                              <input autoFocus value={newUnitName} onChange={e => setNewUnitName(e.target.value)}
+                                                onKeyDown={e => { if (e.key === 'Enter') addInspectionUnit(); if (e.key === 'Escape') setAddingUnit(false) }}
+                                                className="text-xs border border-gray-300 rounded-lg px-2 py-0.5 w-20 focus:outline-none focus:border-blue-400" placeholder="單位名稱" />
+                                              <button onClick={addInspectionUnit} className="text-xs text-blue-600 hover:text-blue-800">確認</button>
+                                              <button onClick={() => { setAddingUnit(false); setNewUnitName('') }} className="text-xs text-gray-400 hover:text-gray-600">✕</button>
+                                            </div>
+                                          ) : (
+                                            <button onClick={() => setAddingUnit(true)}
+                                              className="text-xs px-2 py-0.5 rounded-lg border border-dashed border-gray-300 text-gray-400 hover:border-blue-400 hover:text-blue-500">+ 新增</button>
+                                          )}
+                                        </div>
 
-                                {/* 鑑定結果 */}
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  <span className="text-xs text-gray-400 w-12 shrink-0">結果</span>
-                                  {RESULT_TAGS.map(r => {
-                                    const active = intake.appraisal_result === r.value
-                                    return (
-                                      <button key={r.label} onClick={() => quickPatch(intake.id, { appraisalResult: active ? null : r.value })}
-                                        className={`text-xs px-2.5 py-0.5 rounded-lg border font-bold transition-colors ${
-                                          active ? r.color : 'border-gray-200 text-gray-600 hover:border-gray-400'
-                                        }`}>{r.label}</button>
-                                    )
-                                  })}
-                                </div>
+                                        {/* 尺寸 + 重量 */}
+                                        <div className="flex gap-1.5">
+                                          <input
+                                            type="text"
+                                            value={quickEditMap[intake.id]?.size ?? intake.size ?? ''}
+                                            onChange={e => setQuickEditMap(prev => ({ ...prev, [intake.id]: { ...prev[intake.id], size: e.target.value } }))}
+                                            onBlur={() => {
+                                              const val = quickEditMap[intake.id]?.size
+                                              if (val !== undefined) quickPatch(intake.id, { size: val || null })
+                                            }}
+                                            placeholder="尺寸"
+                                            className="flex-1 text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white text-gray-700 focus:outline-none focus:border-amber-400 placeholder-gray-300 min-w-0"
+                                          />
+                                          <input
+                                            type="text"
+                                            value={quickEditMap[intake.id]?.weight ?? intake.weight ?? ''}
+                                            onChange={e => setQuickEditMap(prev => ({ ...prev, [intake.id]: { ...prev[intake.id], weight: e.target.value } }))}
+                                            onBlur={() => {
+                                              const val = quickEditMap[intake.id]?.weight
+                                              if (val !== undefined) quickPatch(intake.id, { weight: val || null })
+                                            }}
+                                            placeholder="重量"
+                                            className="flex-1 text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white text-gray-700 focus:outline-none focus:border-amber-400 placeholder-gray-300 min-w-0"
+                                          />
+                                        </div>
+                                      </div>
 
-                                {/* 送檢單位 */}
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  <span className="text-xs text-gray-400 w-12 shrink-0">送檢</span>
-                                  {inspectionUnits.map(u => (
-                                    <button key={u} onClick={() => quickPatch(intake.id, { inspectionUnit: intake.inspection_unit === u ? null : u })}
-                                      className={`text-xs px-2 py-0.5 rounded-lg border transition-colors group/unit relative ${
-                                        intake.inspection_unit === u
-                                          ? 'bg-blue-600 text-white border-blue-600'
-                                          : 'border-gray-200 text-gray-600 hover:border-blue-400'
-                                      }`}>
-                                      {u}
-                                      <span onClick={e => { e.stopPropagation(); removeInspectionUnit(u) }}
-                                        className="hidden group-hover/unit:inline ml-1 text-xs opacity-60 hover:opacity-100">×</span>
-                                    </button>
-                                  ))}
-                                  {addingUnit ? (
-                                    <div className="flex items-center gap-1">
-                                      <input autoFocus value={newUnitName} onChange={e => setNewUnitName(e.target.value)}
-                                        onKeyDown={e => { if (e.key === 'Enter') addInspectionUnit(); if (e.key === 'Escape') setAddingUnit(false) }}
-                                        className="text-xs border border-gray-300 rounded-lg px-2 py-0.5 w-20 focus:outline-none focus:border-blue-400" placeholder="單位名稱" />
-                                      <button onClick={addInspectionUnit} className="text-xs text-blue-600 hover:text-blue-800">確認</button>
-                                      <button onClick={() => { setAddingUnit(false); setNewUnitName('') }} className="text-xs text-gray-400 hover:text-gray-600">✕</button>
+                                      {/* 右欄：收件照縮圖 */}
+                                      {intakePhoto && (
+                                        <img src={intakePhoto} alt="收件照"
+                                          className="w-16 h-16 rounded-xl object-cover shrink-0 border border-gray-100 self-start" />
+                                      )}
                                     </div>
-                                  ) : (
-                                    <button onClick={() => setAddingUnit(true)}
-                                      className="text-xs px-2 py-0.5 rounded-lg border border-dashed border-gray-300 text-gray-400 hover:border-blue-400 hover:text-blue-500">+ 新增</button>
-                                  )}
-                                </div>
-                              </div>
+                                    {quickSaved === intake.id && (
+                                      <p className="text-xs text-green-600 mt-1.5">✓ 已儲存</p>
+                                    )}
+                                  </div>
+                                )
+                              })()}
                               {/* 拍照子進度 */}
                               {intake.case_stage === '拍照' && (() => {
                                 let ps: string[] = []

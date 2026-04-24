@@ -13,6 +13,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     await sql`UPDATE intakes SET appraisal_result = ${body.appraisalResult || null}, updated_at = NOW() WHERE id = ${intId}`
   if ('inspectionUnit' in body)
     await sql`UPDATE intakes SET inspection_unit = ${body.inspectionUnit || null}, updated_at = NOW() WHERE id = ${intId}`
+  if ('size' in body)
+    await sql`UPDATE intakes SET size = ${body.size || null}, updated_at = NOW() WHERE id = ${intId}`
+  if ('weight' in body)
+    await sql`UPDATE intakes SET weight = ${body.weight || null}, updated_at = NOW() WHERE id = ${intId}`
 
   // 追加收件照（不覆蓋其他照片）
   if ('addIntakePhoto' in body && body.addIntakePhoto) {
