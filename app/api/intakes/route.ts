@@ -10,6 +10,7 @@ export async function DELETE(req: NextRequest) {
 }
 
 export async function GET() {
+  await ensureSchema()
   const { rows } = await sql`
     SELECT id, customer_name, item_code, building_type, appraisal_result,
            genuine_preset, status, operator, submission_date, report_path,
