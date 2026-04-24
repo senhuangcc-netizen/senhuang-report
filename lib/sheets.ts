@@ -72,29 +72,37 @@ async function sheetReq(method: string, path: string, body?: unknown) {
   return res.json()
 }
 
-// 取得試算表所有工作表名稱，找出第一個（報告清單用）
-async function getSheetNames(): Promise<string[]> {
+// 取得所有工作表的名稱與數字 ID
+async function getSheetInfo(): Promise<Array<{ title: string; sheetId: number }>> {
   const token = await getServiceAccountToken()
   const id = process.env.GOOGLE_SHEET_ID!
-  const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${id}?fields=sheets.properties.title`, {
+  const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${id}?fields=sheets.properties`, {
     headers: { Authorization: `Bearer ${token}` },
   })
   const data = await res.json()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (data.sheets ?? []).map((s: any) => s.properties.title as string)
+  return (data.sheets ?? []).map((s: any) => ({ title: s.properties.title as string, sheetId: s.properties.sheetId as number }))
 }
 
-// 確保指定工作表存在；不存在則新增
-async function ensureSheet(title: string): Promise<void> {
-  const names = await getSheetNames()
-  if (names.includes(title)) return
+async function getSheetNames(): Promise<string[]> {
+  return (await getSheetInfo()).map(s => s.title)
+}
+
+// 確保工作表存在；回傳數字 sheetId
+async function ensureSheet(title: string): Promise<number> {
+  const info = await getSheetInfo()
+  const existing = info.find(s => s.title === title)
+  if (existing) return existing.sheetId
   const token = await getServiceAccountToken()
   const id = process.env.GOOGLE_SHEET_ID!
-  await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${id}:batchUpdate`, {
+  const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${id}:batchUpdate`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ requests: [{ addSheet: { properties: { title } } }] }),
   })
+  const data = await res.json()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return data.replies?.[0]?.addSheet?.properties?.sheetId ?? 0
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -153,26 +161,32 @@ async function syncToSheet(
   rowId: string,
   rowData: string[],
 ) {
-  await ensureSheet(sheetTitle)
+  const sheetId = await ensureSheet(sheetTitle)
 
   const data = await sheetReq('GET', `/values/${encodeURIComponent(sheetTitle)}!A:A`)
   const values: string[][] = data.values ?? []
 
   if (values.length === 0 || values[0]?.[0] !== headers[0]) {
-    // 初始化表頭
+    // 初始化表頭，新資料插在第二行
     await sheetReq('PUT', `/values/${encodeURIComponent(sheetTitle)}!A1?valueInputOption=RAW`, { values: [headers] })
-    await sheetReq('POST', `/values/${encodeURIComponent(sheetTitle)}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`, {
-      values: [rowData],
-    })
+    await sheetReq('PUT', `/values/${encodeURIComponent(sheetTitle)}!A2?valueInputOption=RAW`, { values: [rowData] })
     return
   }
 
   const idx = values.findIndex(r => r[0] === rowId)
   if (idx === -1) {
-    await sheetReq('POST', `/values/${encodeURIComponent(sheetTitle)}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`, {
-      values: [rowData],
+    // 新資料：在表頭下方插入一行，最新的在最上方
+    await sheetReq('POST', `/:batchUpdate`, {
+      requests: [{
+        insertDimension: {
+          range: { sheetId, dimension: 'ROWS', startIndex: 1, endIndex: 2 },
+          inheritFromBefore: false,
+        },
+      }],
     })
+    await sheetReq('PUT', `/values/${encodeURIComponent(sheetTitle)}!A2?valueInputOption=RAW`, { values: [rowData] })
   } else {
+    // 更新既有行
     await sheetReq('PUT', `/values/${encodeURIComponent(sheetTitle)}!A${idx + 1}?valueInputOption=RAW`, {
       values: [rowData],
     })
