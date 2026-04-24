@@ -49,20 +49,21 @@ export default function NewIntakePage() {
       .then((list: string[]) => setCustomerSuggestions(list))
   }, [])
 
-  // 客戶名稱變動時拉取下一個自動編碼預覽
-  useEffect(() => {
-    if (!customerName.trim()) { setItemCode(''); return }
-    fetch(`/api/next-code?customerName=${encodeURIComponent(customerName)}`)
-      .then(r => r.json())
-      .then(d => { if (d.code) setItemCode(d.code) })
-      .catch(() => {})
-  }, [customerName])
-
-  // 編碼：自動生成（字母+序號）
-  const [itemCode, setItemCode] = useState('')
-  const [, setItemBracket]          = useState('')
-  const [, setItemPrefix]           = useState('')
+  // 編碼：四段欄位
+  const [itemPrefix,   setItemPrefix]   = useState('C26')
+  const [itemBracket,  setItemBracket]  = useState('')
   const [itemSequence, setItemSequence] = useState('')
+
+  // 月份+日期：建檔當下自動生成（唯讀）
+  const [itemMonthDay] = useState(() => {
+    const now = new Date()
+    const mm = now.getMonth()
+    const dd = String(now.getDate()).padStart(2, '0')
+    return (MONTH_ABBR[mm] ?? '') + dd
+  })
+
+  // 完整編碼（唯讀組合）
+  const itemCode = [`${itemPrefix}${itemMonthDay}`, itemBracket, itemSequence].filter(Boolean).join('-')
 
   // 送檢日
   const [submissionDate, setSubmissionDate] = useState('')
@@ -540,16 +541,51 @@ export default function NewIntakePage() {
             )}
           </div>
 
-          {/* 編碼（自動生成） */}
+          {/* 編碼 */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">品項編碼</label>
-            <div className="border border-dashed border-gray-300 rounded-xl px-3 py-2 bg-gray-50 font-mono text-sm text-gray-700 min-h-[38px] flex items-center">
-              {itemCode
-                ? <span className="text-amber-700 font-bold text-base">{itemCode}</span>
-                : <span className="text-gray-300 text-xs">填入客戶名稱後自動產生</span>
-              }
+            <label className="block text-sm font-medium text-gray-700 mb-1">編碼 *</label>
+            <div className="flex gap-1 items-stretch flex-wrap">
+              {/* ① 前綴 */}
+              <input
+                type="text"
+                value={itemPrefix}
+                onChange={e => setItemPrefix(e.target.value.toUpperCase())}
+                placeholder="C26"
+                maxLength={4}
+                className="w-14 border border-gray-200 rounded-xl px-2 py-2 text-sm text-gray-900 text-center font-mono focus:outline-none focus:border-amber-500"
+              />
+              {/* ② 月份+日期（自動唯讀） */}
+              <div className="w-20 border border-dashed border-gray-300 rounded-xl px-2 py-2 text-sm text-gray-500 font-mono text-center bg-gray-50 flex items-center justify-center">
+                {itemMonthDay || <span className="text-gray-300 text-xs">月日</span>}
+              </div>
+              <span className="flex items-center text-gray-400 font-mono">-</span>
+              {/* ③ 類型碼（從下拉自動生成，可手動覆蓋） */}
+              <input
+                type="text"
+                value={itemBracket}
+                onChange={e => setItemBracket(e.target.value.toUpperCase())}
+                placeholder="類型碼"
+                maxLength={4}
+                className="w-24 border border-amber-200 rounded-xl px-2 py-2 text-sm text-gray-900 font-mono text-center bg-amber-50 focus:outline-none focus:border-amber-500"
+                title="從建檔類型下拉的 [bracket] 自動生成，可手動修改"
+              />
+              <span className="flex items-center text-gray-400 font-mono">-</span>
+              {/* ④ 序號（手動，A-Z + 數字） */}
+              <input
+                type="text"
+                value={itemSequence}
+                onChange={e => setItemSequence(e.target.value.toUpperCase())}
+                required
+                placeholder="K6"
+                maxLength={10}
+                className="flex-1 min-w-16 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 font-mono focus:outline-none focus:border-amber-500"
+              />
             </div>
-            <p className="text-xs text-gray-400 mt-1">依資料夾字母（A→Z 循環）+ 件序自動分配，送出時確認</p>
+            {itemCode && (
+              <p className="text-xs text-gray-400 mt-1 font-mono">
+                完整編碼：<span className="text-gray-600">{itemCode}</span>
+              </p>
+            )}
           </div>
 
           {/* 鑑定卡號 */}
