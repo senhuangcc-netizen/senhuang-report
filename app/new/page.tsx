@@ -60,7 +60,9 @@ export default function NewIntakePage() {
 
   // 編碼：自動生成（字母+序號）
   const [itemCode, setItemCode] = useState('')
-  const [, setItemBracket] = useState('')
+  const [, setItemBracket]   = useState('')
+  const [, setItemPrefix]    = useState('')
+  const [, setItemSequence]  = useState('')
 
   // 送檢日
   const [submissionDate, setSubmissionDate] = useState('')
