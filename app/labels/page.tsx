@@ -11,138 +11,163 @@ function makeCode() {
   return `${prefix}${letter}${digits}`
 }
 
-export default function LabelsPage() {
-  const [cols, setCols] = useState(4)
-  const [rows, setRows] = useState(6)
-  const [labelW, setLabelW] = useState(50)   // mm
-  const [labelH, setLabelH] = useState(47)   // mm
-  const count = cols * rows
+// 固定版型：3.5×10cm 長條，一條4個，兩欄，8排，欄間距0.5mm
+const COLS     = 2
+const ROWS     = 8
+const LABEL_W  = 35    // mm
+const LABEL_H  = 25    // mm  (100mm / 4)
+const COL_GAP  = 0.5   // mm
 
-  const [codes, setCodes] = useState<string[]>([])
-  const [qrUrls, setQrUrls] = useState<Record<string, string>>({})
+export default function LabelsPage() {
+  const [codes,   setCodes]   = useState<string[]>([])
+  const [qrUrls,  setQrUrls]  = useState<Record<string, string>>({})
+
+  const count = COLS * ROWS
 
   const generate = useCallback(async () => {
     const next = Array.from({ length: count }, makeCode)
     setCodes(next)
     const urls: Record<string, string> = {}
+    // QR 圖像尺寸塞入標籤寬減去邊距
+    const qrSizePx = Math.round((LABEL_W - 4) * 3.78) // mm → px @96dpi
     await Promise.all(next.map(async code => {
-      urls[code] = await QRCode.toDataURL(code, { width: 180, margin: 1, errorCorrectionLevel: 'M' })
+      urls[code] = await QRCode.toDataURL(code, {
+        width: qrSizePx,
+        margin: 1,
+        errorCorrectionLevel: 'M',
+      })
     }))
     setQrUrls(urls)
   }, [count])
 
   useEffect(() => { generate() }, [generate])
 
+  const suffix = (code: string) => code.slice(-3)
+
   return (
     <>
       <style>{`
         @media print {
           .no-print { display: none !important; }
-          body { margin: 0; }
-          .label-page { padding: 5mm; }
+          body { margin: 0; background: white; }
+
           .label-grid {
             display: grid;
-            grid-template-columns: repeat(${cols}, 1fr);
-            gap: 0;
-            width: ${cols * labelW}mm;
+            grid-template-columns: ${LABEL_W}mm ${LABEL_W}mm;
+            grid-template-rows: repeat(${ROWS}, ${LABEL_H}mm);
+            column-gap: ${COL_GAP}mm;
+            row-gap: 0;
+            width: ${COLS * LABEL_W + COL_GAP}mm;
+            margin: 5mm auto 0;
           }
           .label-cell {
-            width: ${labelW}mm;
-            height: ${labelH}mm;
+            width: ${LABEL_W}mm;
+            height: ${LABEL_H}mm;
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
             align-items: center;
-            justify-content: center;
-            border: 0.3mm solid #ccc;
+            justify-content: flex-start;
             box-sizing: border-box;
-            padding: 2mm;
+            padding: 1.5mm;
+            gap: 1.5mm;
+            border: 0.2mm solid #ddd;
           }
-          .label-cell img { width: ${labelW - 14}mm; height: ${labelW - 14}mm; }
-          .label-cell p { font-size: 7pt; font-family: monospace; margin: 1mm 0 0; letter-spacing: 0.5px; }
-          @page { size: A4; margin: 5mm; }
+          .label-cell img {
+            width: ${LABEL_H - 5}mm;
+            height: ${LABEL_H - 5}mm;
+            flex-shrink: 0;
+          }
+          .label-cell .label-code {
+            font-size: 21pt;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            letter-spacing: 1px;
+            color: #000;
+            line-height: 1;
+            word-break: break-all;
+          }
+          @page { size: A4 portrait; margin: 5mm; }
+        }
+
+        /* 螢幕預覽：等比顯示 */
+        .label-grid-preview {
+          display: grid;
+          grid-template-columns: repeat(${COLS}, ${LABEL_W * 3}px);
+          grid-template-rows: repeat(${ROWS}, ${LABEL_H * 3}px);
+          column-gap: ${COL_GAP * 3}px;
+          row-gap: 0;
+          width: fit-content;
+          border: 1px solid #e5e7eb;
+          margin: 0 auto;
+        }
+        .label-cell-preview {
+          width: ${LABEL_W * 3}px;
+          height: ${LABEL_H * 3}px;
+          display: flex;
+          flex-direction: row;
+          align-items: center;
+          justify-content: flex-start;
+          box-sizing: border-box;
+          padding: ${1.5 * 3}px;
+          gap: ${1.5 * 3}px;
+          border: 1px solid #e5e7eb;
         }
       `}</style>
 
-      <div className="label-page">
-        {/* 操作列 */}
-        <div className="no-print flex items-center gap-3 p-4 border-b bg-white sticky top-0 z-10">
-          <Link href="/" className="text-gray-400 hover:text-gray-600 text-sm">← 返回</Link>
-          <h1 className="font-bold text-gray-800">批量標籤產生（24 格 A4）</h1>
-          {/* 尺寸控制 */}
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <span>欄</span>
-            <input type="number" min={1} max={8} value={cols} onChange={e => setCols(Number(e.target.value))}
-              className="w-12 border border-gray-200 rounded px-1 py-0.5 text-center" />
-            <span>列</span>
-            <input type="number" min={1} max={12} value={rows} onChange={e => setRows(Number(e.target.value))}
-              className="w-12 border border-gray-200 rounded px-1 py-0.5 text-center" />
-            <span className="ml-2">寬</span>
-            <input type="number" min={20} max={100} value={labelW} onChange={e => setLabelW(Number(e.target.value))}
-              className="w-14 border border-gray-200 rounded px-1 py-0.5 text-center" />
-            <span>mm</span>
-            <span className="ml-1">高</span>
-            <input type="number" min={20} max={100} value={labelH} onChange={e => setLabelH(Number(e.target.value))}
-              className="w-14 border border-gray-200 rounded px-1 py-0.5 text-center" />
-            <span>mm</span>
-          </div>
-
-          <div className="ml-auto flex gap-2">
-            <button
-              onClick={generate}
-              className="px-4 py-1.5 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50"
-            >
-              重新產生
-            </button>
-            <button
-              onClick={() => window.print()}
-              className="px-4 py-1.5 bg-amber-600 text-white text-sm rounded-lg hover:bg-amber-700"
-            >
-              列印
-            </button>
-          </div>
+      {/* 操作列 */}
+      <div className="no-print flex items-center gap-3 p-4 border-b bg-white sticky top-0 z-10 flex-wrap">
+        <Link href="/" className="text-gray-400 hover:text-gray-600 text-sm">← 返回</Link>
+        <h1 className="font-bold text-gray-800">批量標籤（{COLS}欄 × {ROWS}排 = {count} 枚）</h1>
+        <p className="text-xs text-gray-400">每格 {LABEL_W}×{LABEL_H}mm，欄距 {COL_GAP}mm</p>
+        <div className="ml-auto flex gap-2">
+          <button
+            onClick={generate}
+            className="px-4 py-1.5 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50"
+          >重新產生</button>
+          <button
+            onClick={() => window.print()}
+            className="px-4 py-1.5 bg-amber-600 text-white text-sm rounded-lg hover:bg-amber-700"
+          >列印</button>
         </div>
+      </div>
 
-        {/* 標籤格 */}
-        <div className="no-print p-4 text-xs text-gray-400">
-          列印後以裁紙機沿格線裁切。共 {count} 枚標籤。
-        </div>
+      <div className="no-print p-3 text-xs text-gray-400 text-center">
+        列印後沿格線裁切。紙張設定 A4，邊距 5mm。
+      </div>
 
-        <div
-          className="label-grid mx-auto"
-          style={{
-            display: 'grid',
-            gridTemplateColumns: `repeat(${cols}, 1fr)`,
-            width: 'fit-content',
-            border: '1px solid #e5e7eb',
-          }}
-        >
+      {/* 螢幕預覽 */}
+      <div className="no-print p-4 overflow-x-auto">
+        <div className="label-grid-preview">
           {codes.map(code => (
-            <div
-              key={code}
-              className="label-cell"
-              style={{
-                width: `${labelW}mm`,
-                height: `${labelH}mm`,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                border: '1px solid #e5e7eb',
-                boxSizing: 'border-box',
-                padding: '2mm',
-              }}
-            >
+            <div key={code} className="label-cell-preview">
               {qrUrls[code]
-                ? <img src={qrUrls[code]} alt={code} style={{ width: `${labelW - 14}mm`, height: `${labelW - 14}mm` }} />
-                : <div style={{ width: `${labelW - 14}mm`, height: `${labelW - 14}mm`, background: '#f3f4f6' }} />
+                ? <img src={qrUrls[code]} alt={code} style={{ width: (LABEL_H - 5) * 3, height: (LABEL_H - 5) * 3 }} />
+                : <div style={{ width: (LABEL_H - 5) * 3, height: (LABEL_H - 5) * 3, background: '#f3f4f6', borderRadius: 4 }} />
               }
-              <p style={{ fontSize: '7pt', fontFamily: 'monospace', margin: '1mm 0 0', letterSpacing: '0.5px' }}>
-                {code}
-              </p>
+              <span style={{ fontSize: 21 * 3 / 4, fontFamily: 'monospace', fontWeight: 700, letterSpacing: 1 }}>
+                {suffix(code)}
+              </span>
             </div>
           ))}
         </div>
       </div>
+
+      {/* 列印用隱藏層 */}
+      <div className="label-grid" style={{ display: 'none' }} id="print-grid">
+        {codes.map(code => (
+          <div key={code} className="label-cell">
+            {qrUrls[code] && <img src={qrUrls[code]} alt={code} />}
+            <span className="label-code">{suffix(code)}</span>
+          </div>
+        ))}
+      </div>
+
+      <style>{`
+        @media print {
+          #print-grid { display: grid !important; }
+          .label-grid-preview { display: none !important; }
+        }
+      `}</style>
     </>
   )
 }
