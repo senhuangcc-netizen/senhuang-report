@@ -274,7 +274,7 @@ export default function HomePage() {
 
                 {/* 第一層：資料夾標題（預設收合） */}
                 <div
-                  className="px-4 py-3 flex items-center gap-2 cursor-pointer hover:bg-amber-50 transition-colors select-none"
+                  className="px-4 py-3 flex items-center gap-2 cursor-pointer hover:bg-amber-50 transition-colors select-none group"
                   onClick={() => toggleFolder(cname)}
                 >
                   <span className="text-base">{folderOpen ? '📂' : '📁'}</span>
@@ -289,7 +289,7 @@ export default function HomePage() {
                   <span className="ml-auto text-gray-300 text-sm">{folderOpen ? '▾' : '▸'}</span>
                   <button
                     onClick={e => { e.stopPropagation(); setConfirmInput(''); setDeleteTarget({ type: 'folder', customerName: cname }) }}
-                    className="text-gray-300 hover:text-red-500 text-sm px-1 transition-colors"
+                    className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 text-sm px-1 transition-all"
                     title="刪除整個資料夾"
                   >🗑</button>
                 </div>
