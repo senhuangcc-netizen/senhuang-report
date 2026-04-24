@@ -543,6 +543,7 @@ export default function NewIntakePage() {
             onChange={setIntakePhotos}
             folder={folderName || 'intake_photos'}
             category="收件照"
+            collapseWhenFilled
           />
         </section>
 

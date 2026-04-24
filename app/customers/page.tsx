@@ -26,6 +26,8 @@ export default function CustomersPage() {
   // QR modal
   const [qrOpen,    setQrOpen]    = useState(false)
   const [qrDataUrl, setQrDataUrl] = useState('')
+  const [qrUrl,     setQrUrl]     = useState('')
+  const [copied,    setCopied]    = useState(false)
   const qrGenerated = useRef(false)
 
   // 刪除確認 modal
@@ -45,10 +47,17 @@ export default function CustomersPage() {
     setQrOpen(true)
     if (!qrGenerated.current) {
       const url = `${window.location.origin}/customers/register`
+      setQrUrl(url)
       const dataUrl = await QRCode.toDataURL(url, { width: 300, margin: 2, color: { dark: '#92400e', light: '#fffbeb' } })
       setQrDataUrl(dataUrl)
       qrGenerated.current = true
     }
+  }
+
+  const copyQrLink = async () => {
+    await navigator.clipboard.writeText(qrUrl || `${window.location.origin}/customers/register`)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
   const execDelete = async () => {
@@ -79,6 +88,14 @@ export default function CustomersPage() {
               ? <img src={qrDataUrl} alt="QR Code" className="mx-auto rounded-xl" width={240} height={240} />
               : <div className="w-60 h-60 mx-auto bg-amber-50 rounded-xl animate-pulse" />
             }
+            <button
+              onClick={copyQrLink}
+              className={`w-full px-4 py-2 text-sm rounded-xl font-medium transition-colors ${
+                copied ? 'bg-green-100 text-green-700 border border-green-300' : 'bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100'
+              }`}
+            >
+              {copied ? '✓ 已複製連結' : '複製連結（分享到 LINE）'}
+            </button>
             <div className="flex gap-2">
               <button onClick={() => setQrOpen(false)}
                 className="flex-1 px-4 py-2 border border-gray-300 text-gray-600 text-sm rounded-xl hover:bg-gray-50">關閉</button>
@@ -183,9 +200,14 @@ export default function CustomersPage() {
                   </div>
                   <span className="text-gray-300 text-sm shrink-0">›</span>
                 </Link>
+                <Link
+                  href={`/scan?customer=${encodeURIComponent(c.name)}`}
+                  className="absolute right-16 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 text-xs font-medium text-amber-600 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg hover:bg-amber-100 transition-all whitespace-nowrap"
+                  title="新建資料夾"
+                >新資料夾</Link>
                 <button
                   onClick={() => { setConfirmInput(''); setDeleteTarget(c) }}
-                  className="absolute right-10 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-500 text-sm px-2 py-1 rounded-lg hover:bg-red-50 transition-all"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-500 text-sm px-2 py-1 rounded-lg hover:bg-red-50 transition-all"
                   title="刪除"
                 >🗑</button>
               </div>

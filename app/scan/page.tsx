@@ -1,8 +1,9 @@
 'use client'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import BarcodeScanner from '@/components/BarcodeScanner'
+import { compressImage } from '@/lib/compressImage'
 
 type Mode = 'intake' | 'xray'
 
@@ -52,6 +53,41 @@ export default function ScanPage() {
   }, [])
 
   const [dupWarning, setDupWarning] = useState('')
+
+  // 收件照：每個建件可拍一張快速識別照
+  const [photoMap, setPhotoMap] = useState<Record<number, string>>({}) // intakeId → path
+  const [photoUploading, setPhotoUploading] = useState<number | null>(null) // intakeId
+  const cameraInputRef = useRef<HTMLInputElement>(null)
+  const pendingPhotoId = useRef<number | null>(null)
+
+  const triggerCamera = (intakeId: number) => {
+    pendingPhotoId.current = intakeId
+    cameraInputRef.current?.click()
+  }
+
+  const handleCameraFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    const intakeId = pendingPhotoId.current
+    if (!file || !intakeId) return
+    e.target.value = ''
+    setPhotoUploading(intakeId)
+    try {
+      const compressed = await compressImage(file)
+      const fd = new FormData()
+      fd.append('file', compressed)
+      fd.append('folder', customerName.trim() || 'intake_photos')
+      fd.append('category', '收件照')
+      const res = await fetch('/api/upload', { method: 'POST', body: fd })
+      const { path } = await res.json()
+      await fetch(`/api/intakes/${intakeId}/quick`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ addIntakePhoto: path }),
+      })
+      setPhotoMap(prev => ({ ...prev, [intakeId]: path }))
+    } catch { /* ignore */ }
+    setPhotoUploading(null)
+  }
 
   // 建件模式：掃描後自動建草稿
   const createDraft = useCallback(async (barcode: string) => {
@@ -236,13 +272,27 @@ export default function ScanPage() {
             </p>
             <div className="divide-y divide-gray-50">
               {items.map((it, i) => (
-                <div key={it.tempId} className="flex items-center gap-3 py-2.5">
+                <div key={it.tempId} className="flex items-center gap-2 py-2.5">
                   <span className="text-gray-300 text-sm w-5 shrink-0">{i + 1}</span>
                   <div className="flex-1 min-w-0">
                     <p className="text-gray-800 font-mono text-sm truncate">{it.barcode}</p>
                     <p className="text-gray-400 text-xs">代碼：{it.itemCode}</p>
                   </div>
-                  <div className="shrink-0 text-sm">
+                  {/* 收件照縮圖 or 拍照按鈕 */}
+                  {it.status === 'saved' && it.intakeId && (
+                    photoMap[it.intakeId]
+                      ? <img src={photoMap[it.intakeId]} alt="收件照" className="w-10 h-10 rounded-lg object-cover shrink-0 border border-gray-100" />
+                      : <button
+                          type="button"
+                          onClick={() => triggerCamera(it.intakeId!)}
+                          disabled={photoUploading === it.intakeId}
+                          className="shrink-0 w-10 h-10 rounded-lg border-2 border-dashed border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-600 text-lg flex items-center justify-center disabled:opacity-40"
+                          title="拍收件照"
+                        >
+                          {photoUploading === it.intakeId ? '…' : '📷'}
+                        </button>
+                  )}
+                  <div className="shrink-0 text-sm w-4">
                     {it.status === 'saving' && <span className="text-gray-400">⋯</span>}
                     {it.status === 'saved'  && <span className="text-green-500">✓</span>}
                     {it.status === 'error'  && <span className="text-red-500">✕</span>}
@@ -269,6 +319,16 @@ export default function ScanPage() {
           完成，返回列表
         </button>
       </div>
+
+      {/* hidden camera input for 收件照 */}
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={handleCameraFile}
+      />
 
       {scanning && (
         <BarcodeScanner

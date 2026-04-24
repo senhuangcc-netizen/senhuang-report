@@ -16,13 +16,16 @@ interface Props {
   category: string
   accept?: string
   showCamera?: boolean
+  collapseWhenFilled?: boolean
 }
 
-export default function SimplePhotoUpload({ label, paths, onChange, folder, category, accept = 'image/*', showCamera = true }: Props) {
+export default function SimplePhotoUpload({ label, paths, onChange, folder, category, accept = 'image/*', showCamera = true, collapseWhenFilled = false }: Props) {
   const inputRef  = useRef<HTMLInputElement>(null)
   const cameraRef = useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = useState(false)
   const [inProgress, setInProgress] = useState<InProgress[]>([])
+
+  const isFilled = collapseWhenFilled && (paths.length > 0 || inProgress.length > 0)
 
   const uploadFiles = useCallback(async (files: FileList | null) => {
     if (!files || !files.length) return
@@ -60,46 +63,48 @@ export default function SimplePhotoUpload({ label, paths, onChange, folder, cate
     <div className="space-y-2">
       {label && <p className="text-sm font-medium text-gray-700">{label}</p>}
 
-      {/* 操作列：拍照 + 選檔 */}
-      <div className="flex gap-2">
-        {showCamera && (
-          <button
-            type="button"
-            onClick={() => cameraRef.current?.click()}
-            className="flex-1 flex items-center justify-center gap-2 border-2 border-dashed border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-xl py-3 text-sm font-medium transition-colors"
+      {/* 操作列：拍照 + 選檔（有照片且 collapseWhenFilled 時隱藏）*/}
+      {!isFilled && (
+        <div className="flex gap-2">
+          {showCamera && (
+            <button
+              type="button"
+              onClick={() => cameraRef.current?.click()}
+              className="flex-1 flex items-center justify-center gap-2 border-2 border-dashed border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-xl py-3 text-sm font-medium transition-colors"
+            >
+              <span className="text-lg">📷</span> 拍照
+              <input
+                ref={cameraRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={e => uploadFiles(e.target.files)}
+              />
+            </button>
+          )}
+          <div
+            onDragOver={e => { e.preventDefault(); setDragging(true) }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={e => { e.preventDefault(); setDragging(false); uploadFiles(e.dataTransfer.files) }}
+            onClick={() => inputRef.current?.click()}
+            className={`flex-1 border-2 border-dashed rounded-xl py-3 text-center cursor-pointer transition-colors select-none flex flex-col items-center justify-center ${
+              dragging ? 'border-amber-400 bg-amber-50' : 'border-gray-200 hover:border-amber-300 hover:bg-gray-50'
+            }`}
           >
-            <span className="text-lg">📷</span> 拍照
+            <p className="text-lg mb-0.5">📎</p>
+            <p className="text-sm text-gray-400">選擇檔案</p>
             <input
-              ref={cameraRef}
+              ref={inputRef}
               type="file"
-              accept="image/*"
-              capture="environment"
+              multiple
+              accept={accept}
               className="hidden"
               onChange={e => uploadFiles(e.target.files)}
             />
-          </button>
-        )}
-        <div
-          onDragOver={e => { e.preventDefault(); setDragging(true) }}
-          onDragLeave={() => setDragging(false)}
-          onDrop={e => { e.preventDefault(); setDragging(false); uploadFiles(e.dataTransfer.files) }}
-          onClick={() => inputRef.current?.click()}
-          className={`flex-1 border-2 border-dashed rounded-xl py-3 text-center cursor-pointer transition-colors select-none flex flex-col items-center justify-center ${
-            dragging ? 'border-amber-400 bg-amber-50' : 'border-gray-200 hover:border-amber-300 hover:bg-gray-50'
-          }`}
-        >
-          <p className="text-lg mb-0.5">📎</p>
-          <p className="text-sm text-gray-400">選擇檔案</p>
-          <input
-            ref={inputRef}
-            type="file"
-            multiple
-            accept={accept}
-            className="hidden"
-            onChange={e => uploadFiles(e.target.files)}
-          />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* 已上傳 + 上傳中的縮圖 */}
       {(paths.length > 0 || inProgress.length > 0) && (
@@ -122,6 +127,25 @@ export default function SimplePhotoUpload({ label, paths, onChange, folder, cate
               </div>
             </div>
           ))}
+          {/* collapsed 模式下補拍按鈕 */}
+          {isFilled && (
+            <button
+              type="button"
+              onClick={() => cameraRef.current?.click()}
+              className="aspect-square rounded-xl border-2 border-dashed border-gray-200 hover:border-amber-300 text-gray-400 hover:text-amber-600 flex items-center justify-center text-2xl transition-colors bg-white"
+              title="補拍照片"
+            >
+              +
+              <input
+                ref={cameraRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={e => uploadFiles(e.target.files)}
+              />
+            </button>
+          )}
         </div>
       )}
     </div>

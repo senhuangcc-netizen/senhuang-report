@@ -14,5 +14,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if ('inspectionUnit' in body)
     await sql`UPDATE intakes SET inspection_unit = ${body.inspectionUnit || null}, updated_at = NOW() WHERE id = ${intId}`
 
+  // 追加收件照（不覆蓋其他照片）
+  if ('addIntakePhoto' in body && body.addIntakePhoto) {
+    const { rows } = await sql`SELECT photos FROM intakes WHERE id = ${intId}`
+    const existing: { category: string; path: string }[] = JSON.parse(rows[0]?.photos || '[]')
+    const updated = [...existing, { category: '收件照', path: body.addIntakePhoto }]
+    await sql`UPDATE intakes SET photos = ${JSON.stringify(updated)}, updated_at = NOW() WHERE id = ${intId}`
+  }
+
   return NextResponse.json({ ok: true })
 }
