@@ -420,12 +420,18 @@ export default function ReportPreviewPage() {
   const hasDocx = !!intake.report_path
 
   return (
-    <div style={{ background: '#e5e7eb', minHeight: '100vh' }}>
+    <div id="report-page-root" style={{ background: '#e5e7eb', minHeight: '100vh' }}>
       <style>{`
         @media print {
           @page { size: A4; margin: 0; }
-          body { background: white !important; }
-          body > div { background: white !important; min-height: auto !important; padding: 0 !important; }
+          html, body { background: white !important; margin: 0 !important; padding: 0 !important; }
+          #report-page-root {
+            background: white !important;
+            min-height: 0 !important;
+            padding: 0 !important;
+            margin: 0 !important;
+          }
+          .report-scale-wrapper { zoom: 1 !important; }
           #draft-report {
             margin: 0 !important;
             padding: 72px !important;
@@ -434,7 +440,6 @@ export default function ReportPreviewPage() {
             box-shadow: none !important;
             box-sizing: border-box !important;
           }
-          .report-scale-wrapper { zoom: 1 !important; }
         }
         .docx-wrapper { background: #e5e7eb !important; padding: 24px 0; }
         .docx-wrapper section.docx { box-shadow: 0 2px 12px rgba(0,0,0,0.15); margin: 0 auto; }
