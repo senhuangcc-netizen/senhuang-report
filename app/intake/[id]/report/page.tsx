@@ -182,8 +182,9 @@ function DraftPreview({ intake }: { intake: Intake }) {
   )
 
   return (
+    <ScaledA4Wrapper>
     <div id="draft-report"
-      style={{ width: '794px', minHeight: '1123px', margin: '24px auto', background: '#fff', boxShadow: '0 2px 12px rgba(0,0,0,0.15)', padding: '72px', fontFamily: FONT, position: 'relative', boxSizing: 'border-box', color: '#111' }}>
+      style={{ width: '794px', minHeight: '1123px', margin: '0 auto', background: '#fff', boxShadow: '0 2px 12px rgba(0,0,0,0.15)', padding: '72px', fontFamily: FONT, position: 'relative', boxSizing: 'border-box', color: '#111' }}>
 
       {/* 標題 */}
       <div style={{ textAlign: 'center', marginBottom: '6pt', paddingBottom: '4pt' }}>
@@ -310,6 +311,35 @@ function DraftPreview({ intake }: { intake: Intake }) {
         草稿預覽
       </div>
     </div>
+    </ScaledA4Wrapper>
+  )
+}
+
+// ── 手機縮放 wrapper：保持 794px 寬度但等比縮小到螢幕寬 ──
+function ScaledA4Wrapper({ children }: { children: React.ReactNode }) {
+  const REPORT_WIDTH = 794
+  const ref = useRef<HTMLDivElement>(null)
+  const [scale, setScale] = useState(1)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const update = () => {
+      const available = el.parentElement?.clientWidth ?? window.innerWidth
+      setScale(Math.min(1, available / REPORT_WIDTH))
+    }
+    update()
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
+  return (
+    <div ref={ref} style={{ width: '100%' }}>
+      <div className="report-scale-wrapper" style={{ zoom: scale } as React.CSSProperties}>
+        {children}
+      </div>
+    </div>
   )
 }
 
@@ -404,6 +434,7 @@ export default function ReportPreviewPage() {
             box-shadow: none !important;
             box-sizing: border-box !important;
           }
+          .report-scale-wrapper { zoom: 1 !important; }
         }
         .docx-wrapper { background: #e5e7eb !important; padding: 24px 0; }
         .docx-wrapper section.docx { box-shadow: 0 2px 12px rgba(0,0,0,0.15); margin: 0 auto; }
