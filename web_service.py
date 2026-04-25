@@ -88,7 +88,7 @@ def screenshot_pdf_keyword(pdf_path: Path, out_path: Path) -> bool:
                 else:
                     bottom_y = header.y0 + 480
             clip = fitz.Rect(header.x0, header.y0, right_x, bottom_y + 1)
-            pix = page.get_pixmap(clip=clip, dpi=200)
+            pix = page.get_pixmap(clip=clip, dpi=200, colorspace=fitz.csRGB)
             pix.save(str(out_path))
             return True
     finally:
