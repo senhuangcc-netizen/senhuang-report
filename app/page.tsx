@@ -84,18 +84,18 @@ export default function HomePage() {
 
   const handleFolderScan = async (scanned: string) => {
     setFolderScanner(false)
+    const suffix = scanned.slice(-3)
     try {
       const res = await fetch(`/api/intakes?barcode=${encodeURIComponent(scanned)}`)
       const data = await res.json()
       if (data?.id) {
-        // 條碼已建檔 → 直接進入報告編輯頁
         setNewFolderOpen(false)
         router.push(`/new?edit=${data.id}`)
         return
       }
     } catch { /* noop */ }
-    // 查無結果：用掃描內容作為客戶搜尋詞
-    setFolderSearch(scanned)
+    // 查無結果：用後三碼作為客戶搜尋詞
+    setFolderSearch(suffix)
   }
 
   const folderSuggestions = customerList.filter(n =>
@@ -104,7 +104,8 @@ export default function HomePage() {
 
   const handleSearchScan = async (scanned: string) => {
     setSearchScanner(false)
-    // 1. 以條碼查詢
+    const suffix = scanned.slice(-3)
+    // 1. 以完整條碼查詢 DB
     try {
       const res = await fetch(`/api/intakes?barcode=${encodeURIComponent(scanned)}`)
       const data = await res.json()
@@ -113,14 +114,14 @@ export default function HomePage() {
         return
       }
     } catch { /* noop */ }
-    // 2. 以 item_code 在已載入清單中比對（QR 可能印的是代碼而非條碼）
-    const byCode = intakes.find(i => i.item_code === scanned)
+    // 2. 以後三碼比對 item_code 前三碼（item_code 格式：後三碼+資料夾字母，如 K06A）
+    const byCode = intakes.find(i => i.item_code?.startsWith(suffix))
     if (byCode) {
       router.push(`/new?edit=${byCode.id}`)
       return
     }
-    // 3. 找不到：塞進搜尋欄供手動過濾
-    setSearch(scanned)
+    // 3. 找不到：用後三碼塞進搜尋欄
+    setSearch(suffix)
   }
 
   // 刪除確認 Modal
