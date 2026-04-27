@@ -92,9 +92,12 @@ def screenshot_pdf_keyword(pdf_path: Path, out_path: Path) -> bool:
             clip = fitz.Rect(header.x0, header.y0, right_x, bottom_y + 1)
 
             # 結果欄位為 ND 的列，找出像素座標後用 Pillow 徹底移除
-            nd_hits = [r for r in page.search_for("ND")
-                       if r.x0 >= header.x0 - 5 and r.x1 <= sig.x0 + 5
-                       and r.y0 >= header.y1 - 1 and r.y1 <= bottom_y + 1]
+            # 使用 get_text("words") 做精確大小寫比對，避免誤中元素符號 Nd（釹）
+            words = page.get_text("words")  # (x0,y0,x1,y1,word,block,line,idx)
+            nd_hits = [fitz.Rect(w[0], w[1], w[2], w[3]) for w in words
+                       if w[4].strip() == "ND"
+                       and w[0] >= header.x0 - 5 and w[2] <= sig.x0 + 5
+                       and w[1] >= header.y1 - 1 and w[3] <= bottom_y + 1]
 
             pix = page.get_pixmap(clip=clip, dpi=150)
             if pix.n != 3:
