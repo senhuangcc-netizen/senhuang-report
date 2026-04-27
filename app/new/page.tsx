@@ -37,6 +37,9 @@ export default function NewIntakePage() {
         setOperators(list)
         setOperator(prev => prev || list[0] || '')
       })
+    fetch('/api/inspection-units')
+      .then(r => r.json())
+      .then(list => { if (Array.isArray(list)) setInspectionUnits(list) })
   }, [])
 
   // 客戶（含當月自動完成）
@@ -101,12 +104,29 @@ export default function NewIntakePage() {
   const [genuinePreset, setGenuinePreset] = useState('')
 
   // 案件進度 + 送檢單位 + 拍照子進度
-  const [caseStage,      setCaseStage]      = useState('收件')
-  const [inspectionUnit, setInspectionUnit] = useState('')
+  const [caseStage,       setCaseStage]       = useState('收件')
+  const [inspectionUnit,  setInspectionUnit]  = useState('')
+  const [inspectionUnits, setInspectionUnits] = useState<string[]>([])
+  const [addingUnit,      setAddingUnit]      = useState(false)
+  const [newUnitName,     setNewUnitName]     = useState('')
   const [photoStages,    setPhotoStages]    = useState<string[]>([])
 
   const togglePhotoStage = (s: string) =>
     setPhotoStages(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])
+
+  const addNewUnit = async () => {
+    if (!newUnitName.trim()) return
+    const name = newUnitName.trim()
+    const res = await fetch('/api/inspection-units', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    })
+    setInspectionUnits(await res.json())
+    setInspectionUnit(name)
+    setNewUnitName('')
+    setAddingUnit(false)
+  }
 
   // 收件照（SimplePhotoUpload，路徑陣列）
   const [intakePhotos,         setIntakePhotos]         = useState<string[]>([])
@@ -755,13 +775,31 @@ export default function NewIntakePage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">送檢單位</label>
-              <input
-                type="text"
-                value={inspectionUnit}
-                onChange={e => setInspectionUnit(e.target.value)}
-                placeholder="例：XRF 科學檢測室、碳14 實驗室..."
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:outline-none focus:border-amber-500"
-              />
+              <div className="flex items-center gap-1 flex-wrap min-h-[32px]">
+                {inspectionUnits.map(u => (
+                  <button key={u} type="button"
+                    onClick={() => setInspectionUnit(inspectionUnit === u ? '' : u)}
+                    className={`text-xs px-2 py-0.5 rounded-lg border transition-colors ${
+                      inspectionUnit === u
+                        ? 'bg-blue-600 text-white border-blue-600'
+                        : 'border-gray-200 text-gray-600 hover:border-blue-400'
+                    }`}>
+                    {u}
+                  </button>
+                ))}
+                {addingUnit ? (
+                  <div className="flex items-center gap-1">
+                    <input autoFocus value={newUnitName} onChange={e => setNewUnitName(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') addNewUnit(); if (e.key === 'Escape') { setAddingUnit(false); setNewUnitName('') } }}
+                      className="text-xs border border-gray-300 rounded-lg px-2 py-0.5 w-24 focus:outline-none focus:border-blue-400" placeholder="單位名稱" />
+                    <button type="button" onClick={addNewUnit} className="text-xs text-blue-600 hover:text-blue-800">確認</button>
+                    <button type="button" onClick={() => { setAddingUnit(false); setNewUnitName('') }} className="text-xs text-gray-400 hover:text-gray-600">✕</button>
+                  </div>
+                ) : (
+                  <button type="button" onClick={() => { setAddingUnit(true); setNewUnitName('') }}
+                    className="text-xs px-2 py-0.5 rounded-lg border border-dashed border-gray-300 text-gray-400 hover:border-blue-400 hover:text-blue-500">+ 新增</button>
+                )}
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">報告日（預設今日）</label>

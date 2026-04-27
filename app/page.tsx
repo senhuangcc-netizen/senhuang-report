@@ -205,12 +205,15 @@ export default function HomePage() {
 
   const addInspectionUnit = async () => {
     if (!newUnitName.trim()) return
+    const name = newUnitName.trim()
     const res = await fetch('/api/inspection-units', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: newUnitName.trim() }),
+      body: JSON.stringify({ name }),
     })
     setInspectionUnits(await res.json())
+    // 新增後自動幫當前品項打上這個標籤
+    if (addingUnitFor !== null) await quickPatch(addingUnitFor, { inspectionUnit: name })
     setNewUnitName('')
     setAddingUnitFor(null)
   }
