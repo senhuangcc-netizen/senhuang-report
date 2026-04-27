@@ -153,7 +153,7 @@ function DraftPreview({ intake }: { intake: Intake }) {
 
   const FONT  = '"PMingLiU", "新細明體", "MingLiU", "細明體", "SimSun", serif'
   const KAITI = '"BiauKai", "標楷體", "KaiTi", cursive'
-  const PT12: React.CSSProperties = { fontSize: '12pt', lineHeight: '1.1', color: '#111' }
+  const PT12: React.CSSProperties = { fontSize: '11pt', lineHeight: '1.1', color: '#111' }
   const PT12_HDR: React.CSSProperties = { ...PT12, lineHeight: '1.2', marginBottom: '1pt' }
   const En = ({ children }: { children: React.ReactNode }) => (
     <span style={{ color: '#aaa' }}>{children}</span>
@@ -181,7 +181,7 @@ function DraftPreview({ intake }: { intake: Intake }) {
     <div style={{ width: '100%', height, overflow: 'hidden', background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       {src
         ? <img src={src} alt={alt} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-        : <span style={{ fontSize: '10pt', color: '#bbb' }}>{placeholder}</span>
+        : <span style={{ fontSize: '9pt', color: '#bbb' }}>{placeholder}</span>
       }
     </div>
   )
@@ -193,10 +193,10 @@ function DraftPreview({ intake }: { intake: Intake }) {
 
       {/* 標題 */}
       <div style={{ textAlign: 'center', marginBottom: '4pt' }}>
-        <div style={{ fontSize: '14pt', fontWeight: 'bold', color: '#111', textDecoration: 'underline', lineHeight: '1.2' }}>
+        <div style={{ fontSize: '13pt', fontWeight: 'bold', color: '#111', textDecoration: 'underline', lineHeight: '1.2' }}>
           東方森煌古物鑑定所檢驗報告
         </div>
-        <div style={{ fontSize: '12pt', fontWeight: 'bold', color: '#111', lineHeight: '1.2' }}>
+        <div style={{ fontSize: '11pt', fontWeight: 'bold', color: '#111', lineHeight: '1.2' }}>
           Asia SenHuang Authentication Analysis Report
         </div>
       </div>
@@ -238,11 +238,11 @@ function DraftPreview({ intake }: { intake: Intake }) {
               <a href={intake.xrf_pdf_url} target="_blank" rel="noopener noreferrer"
                 style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 275, textDecoration: 'none', color: '#2563eb' }}>
                 <span style={{ fontSize: '32pt' }}>📄</span>
-                <span style={{ fontSize: '10pt', marginTop: '4pt', textAlign: 'center' }}>XRF 定量分析<br/>點擊查看 PDF</span>
+                <span style={{ fontSize: '9pt', marginTop: '4pt', textAlign: 'center' }}>XRF 定量分析<br/>點擊查看 PDF</span>
               </a>
             ) : (
               <div style={{ height: 275, background: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ fontSize: '10pt', color: '#bbb' }}>XRF 元素分析數據圖</span>
+                <span style={{ fontSize: '9pt', color: '#bbb' }}>XRF 元素分析數據圖</span>
               </div>
             )}
           </td>
@@ -283,7 +283,7 @@ function DraftPreview({ intake }: { intake: Intake }) {
           <td colSpan={3} style={td}>
             <span style={label}>鑑定說明 <En>Description</En>：</span>
             {desc
-              ? <span style={{ lineHeight: '1.1', fontFamily: KAITI, fontWeight: 'bold' }}>{desc}</span>
+              ? <span style={{ lineHeight: '1.1', fontFamily: KAITI }}>{desc}</span>
               : <span style={{ color: '#bbb', fontStyle: 'italic' }}>（待生成鑑定說明）</span>
             }
           </td>
@@ -293,7 +293,7 @@ function DraftPreview({ intake }: { intake: Intake }) {
         <tr>
           <td colSpan={2} style={{ ...td, background: resultBg }}>
             <span style={label}>鑑定結果 <En>Result</En>：</span>
-            <strong style={{ color: resultBorder, fontSize: '12pt', fontFamily: FONT }}>{result || '—'}</strong>
+            <strong style={{ color: '#111', fontSize: '11pt', fontFamily: FONT }}>{result || '—'}</strong>
           </td>
           <td style={td}>
             <span style={label}>備註 <En>Note</En>：</span>
@@ -302,7 +302,7 @@ function DraftPreview({ intake }: { intake: Intake }) {
         </tr>
       </table>
 
-      <div style={{ marginTop: '10pt', textAlign: 'center', fontSize: '10pt', color: '#888', borderTop: '1px solid #ddd', paddingTop: '6pt' }}>
+      <div style={{ marginTop: '10pt', textAlign: 'center', fontSize: '9pt', color: '#888', borderTop: '1px solid #ddd', paddingTop: '6pt' }}>
         TEL: +8862-82602664 &nbsp;｜&nbsp; Web: www.senhuang.org &nbsp;｜&nbsp; Email: info@senhuang.org
       </div>
 
