@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
         AND EXTRACT(MONTH FROM created_at) = ${month}
       ORDER BY customer_name
     `
-    return NextResponse.json(rows.map((r: { customer_name: string }) => r.customer_name))
+    return NextResponse.json(rows.map(r => r.customer_name as string))
   }
   const { rows } = await sql`SELECT * FROM customers ORDER BY created_at DESC`
   return NextResponse.json(rows)
