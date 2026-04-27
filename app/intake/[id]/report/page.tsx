@@ -151,9 +151,13 @@ function DraftPreview({ intake }: { intake: Intake }) {
     return `${d}/${mn[parseInt(m)-1]}/${y}`
   }
 
-  const FONT = '"PMingLiU", "新細明體", "MingLiU", "細明體", "SimSun", serif'
+  const FONT  = '"PMingLiU", "新細明體", "MingLiU", "細明體", "SimSun", serif'
+  const KAITI = '"BiauKai", "標楷體", "KaiTi", cursive'
   const PT12: React.CSSProperties = { fontSize: '12pt', lineHeight: '1.6', color: '#111' }
   const PT12_HDR: React.CSSProperties = { ...PT12, lineHeight: '1.2', marginBottom: '1pt' }
+  const En = ({ children }: { children: React.ReactNode }) => (
+    <span style={{ color: '#aaa' }}>{children}</span>
+  )
 
   const td: React.CSSProperties = {
     border: '1px solid #888',
@@ -198,21 +202,21 @@ function DraftPreview({ intake }: { intake: Intake }) {
       </div>
 
       <div style={PT12_HDR}>
-        送驗編號 NO：{intake.item_code}
+        送驗編號 <En>NO</En>：{intake.item_code}
       </div>
 
       {/* 送檢日 / 報告日 */}
       <div style={{ display: 'flex', gap: '48pt', ...PT12_HDR }}>
-        <span>送檢日期 S Date：{fmtDate(intake.submission_date)}</span>
-        <span>報告日期 R Date：{fmtDate(intake.report_date)}</span>
+        <span>送檢日期 <En>S Date</En>：{fmtDate(intake.submission_date)}</span>
+        <span>報告日期 <En>R Date</En>：{fmtDate(intake.report_date)}</span>
       </div>
 
       {presumed && (
         <div style={PT12_HDR}>
-          顧客推估年代/形制 Presumed by customers：{presumed}
+          顧客推估年代/形制 <En>Presumed by customers</En>：{presumed}
         </div>
       )}
-      <div style={{ ...PT12_HDR, marginBottom: '4pt' }}>送檢相關圖片 Item Pix：</div>
+      <div style={{ ...PT12_HDR, marginBottom: '4pt' }}>送檢相關圖片 <En>Item Pix</En>：</div>
 
       {/* 主表格 */}
       <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
@@ -253,11 +257,11 @@ function DraftPreview({ intake }: { intake: Intake }) {
         {/* 尺寸 / 重量 */}
         <tr>
           <td colSpan={2} style={{ ...td, textAlign: 'center' }}>
-            <span style={{ ...label, textAlign: 'left' }}>尺寸 Size：{sizeLabel}</span>
+            <span style={{ ...label, textAlign: 'left' }}>尺寸 <En>Size</En>：{sizeLabel}</span>
             {intake.size || '—'}
           </td>
           <td style={{ ...td, textAlign: 'center' }}>
-            <span style={{ ...label, textAlign: 'left' }}>重量 Weight：gram</span>
+            <span style={{ ...label, textAlign: 'left' }}>重量 <En>Weight：gram</En></span>
             {intake.weight || '—'}
           </td>
         </tr>
@@ -265,11 +269,11 @@ function DraftPreview({ intake }: { intake: Intake }) {
         {/* 材質 / 形制 */}
         <tr>
           <td style={td}>
-            <span style={label}>材質 Material：</span>
+            <span style={label}>材質 <En>Material</En>：</span>
             {mat || '—'}
           </td>
           <td colSpan={2} style={td}>
-            <span style={label}>形制 Category：</span>
+            <span style={label}>形制 <En>Category</En>：</span>
             {cat || '—'}
           </td>
         </tr>
@@ -277,9 +281,9 @@ function DraftPreview({ intake }: { intake: Intake }) {
         {/* 鑑定說明 */}
         <tr>
           <td colSpan={3} style={td}>
-            <span style={label}>鑑定說明 Description：</span>
+            <span style={label}>鑑定說明 <En>Description</En>：</span>
             {desc
-              ? <span style={{ lineHeight: '1.8' }}>{desc}</span>
+              ? <span style={{ lineHeight: '1.8', fontFamily: KAITI, fontWeight: 'bold' }}>{desc}</span>
               : <span style={{ color: '#bbb', fontStyle: 'italic' }}>（待生成鑑定說明）</span>
             }
           </td>
@@ -288,11 +292,11 @@ function DraftPreview({ intake }: { intake: Intake }) {
         {/* 鑑定結果 / 備註 */}
         <tr>
           <td colSpan={2} style={{ ...td, background: resultBg }}>
-            <span style={label}>鑑定結果 Result：</span>
-            <strong style={{ color: resultBorder, fontSize: '12pt' }}>{result || '—'}</strong>
+            <span style={label}>鑑定結果 <En>Result</En>：</span>
+            <strong style={{ color: resultBorder, fontSize: '12pt', fontFamily: FONT }}>{result || '—'}</strong>
           </td>
           <td style={td}>
-            <span style={label}>備註 Note：</span>
+            <span style={label}>備註 <En>Note</En>：</span>
             {intake.note || ''}
           </td>
         </tr>
