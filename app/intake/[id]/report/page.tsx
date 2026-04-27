@@ -161,7 +161,7 @@ function DraftPreview({ intake }: { intake: Intake }) {
 
   const td: React.CSSProperties = {
     border: '1px solid #888',
-    padding: '2pt 5pt',
+    padding: '2pt 5pt 5pt',
     verticalAlign: 'top',
     ...PT12,
   }
@@ -189,7 +189,7 @@ function DraftPreview({ intake }: { intake: Intake }) {
   return (
     <ScaledA4Wrapper>
     <div id="draft-report"
-      style={{ width: '794px', minHeight: '1123px', margin: '0 auto', background: '#fff', boxShadow: '0 2px 12px rgba(0,0,0,0.15)', padding: '91px', fontFamily: FONT, position: 'relative', boxSizing: 'border-box', color: '#111' }}>
+      style={{ width: '718px', minHeight: '1123px', margin: '0 auto', background: '#fff', boxShadow: '0 2px 12px rgba(0,0,0,0.15)', padding: '91px', fontFamily: FONT, position: 'relative', boxSizing: 'border-box', color: '#111' }}>
 
       {/* 標題 */}
       <div style={{ textAlign: 'center', marginBottom: '4pt' }}>
@@ -302,7 +302,7 @@ function DraftPreview({ intake }: { intake: Intake }) {
         </tr>
       </table>
 
-      <div style={{ marginTop: '10pt', textAlign: 'center', fontSize: '9pt', color: '#888', borderTop: '1px solid #ddd', paddingTop: '6pt' }}>
+      <div style={{ marginTop: '2pt', textAlign: 'center', fontSize: '9pt', color: '#888', lineHeight: '1.1' }}>
         TEL: +8862-82602664 &nbsp;｜&nbsp; Web: www.senhuang.org &nbsp;｜&nbsp; Email: info@senhuang.org
       </div>
 
@@ -439,10 +439,10 @@ export default function ReportPreviewPage() {
           .report-scale-wrapper { zoom: 1 !important; }
           #draft-report {
             position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 210mm !important;
-            height: 297mm !important;
+            top: 1cm !important;
+            left: 1cm !important;
+            width: calc(210mm - 2cm) !important;
+            height: calc(297mm - 2cm) !important;
             margin: 0 !important;
             padding: 91px !important;
             box-shadow: none !important;
