@@ -201,27 +201,16 @@ function DraftPreview({ intake }: { intake: Intake }) {
         </div>
       </div>
 
-      {/* 標頭資訊：grid 讓所有值對齊在同一垂直線（由最長 label 定寬） */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'max-content auto', ...PT12_HDR }}>
-        <span>送驗編號 <En>NO</En>：</span>
-        <span>{intake.item_code}</span>
-
-        {/* 送檢日期與報告日期同行：col1 用 flex space-between，報告日期標籤靠右對齊 col1 邊界，value 欄放報告日期值 */}
-        <span style={{ display: 'flex', justifyContent: 'space-between', gap: '12pt' }}>
-          <span style={{ whiteSpace: 'nowrap' }}>送檢日期 <En>S Date</En>：{fmtDate(intake.submission_date)}</span>
-          <span style={{ whiteSpace: 'nowrap' }}>報告日期 <En>R Date</En>：</span>
-        </span>
-        <span>{fmtDate(intake.report_date)}</span>
-
-        {presumed && (
-          <>
-            <span>顧客推估年代/形制 <En>Presumed by customers</En>：</span>
-            <span>{presumed}</span>
-          </>
-        )}
-        <span>送檢相關圖片 <En>Item Pix</En>：</span>
-        <span style={{ marginBottom: '4pt' }} />
+      {/* 標頭資訊 */}
+      <div style={PT12_HDR}>送驗編號 <En>NO</En>：{intake.item_code}</div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', ...PT12_HDR }}>
+        <span>送檢日期 <En>S Date</En>：{fmtDate(intake.submission_date)}</span>
+        <span>報告日期 <En>R Date</En>：{fmtDate(intake.report_date)}</span>
       </div>
+      {presumed && (
+        <div style={PT12_HDR}>顧客推估年代/形制 <En>Presumed by customers</En>：{presumed}</div>
+      )}
+      <div style={{ ...PT12_HDR, marginBottom: '4pt' }}>送檢相關圖片 <En>Item Pix</En>：</div>
 
       {/* 主表格 */}
       <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
