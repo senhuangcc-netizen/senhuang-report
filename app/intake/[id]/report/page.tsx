@@ -250,11 +250,11 @@ function DraftPreview({ intake }: { intake: Intake }) {
 
         {/* 尺寸 / 重量 */}
         <tr>
-          <td colSpan={2} style={{ ...td, textAlign: 'center' }}>
+          <td colSpan={2} style={{ ...td, textAlign: 'center', lineHeight: '1.1' }}>
             <span style={{ ...label, textAlign: 'left' }}>尺寸 <En>Size</En>：{sizeLabel}</span>
             {intake.size || '—'}
           </td>
-          <td style={{ ...td, textAlign: 'center' }}>
+          <td style={{ ...td, textAlign: 'center', lineHeight: '1.1' }}>
             <span style={{ ...label, textAlign: 'left' }}>重量 <En>Weight：gram</En></span>
             {intake.weight || '—'}
           </td>
