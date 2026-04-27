@@ -153,7 +153,7 @@ function DraftPreview({ intake }: { intake: Intake }) {
 
   const FONT  = '"PMingLiU", "新細明體", "MingLiU", "細明體", "SimSun", serif'
   const KAITI = '"BiauKai", "標楷體", "KaiTi", cursive'
-  const PT12: React.CSSProperties = { fontSize: '12pt', lineHeight: '1', color: '#111' }
+  const PT12: React.CSSProperties = { fontSize: '12pt', lineHeight: '1.1', color: '#111' }
   const PT12_HDR: React.CSSProperties = { ...PT12, lineHeight: '1.2', marginBottom: '1pt' }
   const En = ({ children }: { children: React.ReactNode }) => (
     <span style={{ color: '#aaa' }}>{children}</span>
@@ -283,7 +283,7 @@ function DraftPreview({ intake }: { intake: Intake }) {
           <td colSpan={3} style={td}>
             <span style={label}>鑑定說明 <En>Description</En>：</span>
             {desc
-              ? <span style={{ lineHeight: '1', fontFamily: KAITI, fontWeight: 'bold' }}>{desc}</span>
+              ? <span style={{ lineHeight: '1.1', fontFamily: KAITI, fontWeight: 'bold' }}>{desc}</span>
               : <span style={{ color: '#bbb', fontStyle: 'italic' }}>（待生成鑑定說明）</span>
             }
           </td>
