@@ -153,7 +153,7 @@ function DraftPreview({ intake }: { intake: Intake }) {
 
   const FONT  = '"PMingLiU", "新細明體", "MingLiU", "細明體", "SimSun", serif'
   const KAITI = '"BiauKai", "標楷體", "KaiTi", cursive'
-  const PT12: React.CSSProperties = { fontSize: '12pt', lineHeight: '1.6', color: '#111' }
+  const PT12: React.CSSProperties = { fontSize: '12pt', lineHeight: '1.15', color: '#111' }
   const PT12_HDR: React.CSSProperties = { ...PT12, lineHeight: '1.2', marginBottom: '1pt' }
   const En = ({ children }: { children: React.ReactNode }) => (
     <span style={{ color: '#aaa' }}>{children}</span>
