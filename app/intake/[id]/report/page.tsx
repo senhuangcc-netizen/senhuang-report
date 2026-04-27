@@ -215,9 +215,9 @@ function DraftPreview({ intake }: { intake: Intake }) {
       {/* 主表格 */}
       <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
         <colgroup>
-          <col style={{ width: '50.5%' }} />
-          <col style={{ width: '25.2%' }} />
-          <col style={{ width: '24.3%' }} />
+          <col style={{ width: '44%' }} />
+          <col style={{ width: '22%' }} />
+          <col style={{ width: '34%' }} />
         </colgroup>
 
         {/* 照片行 */}
