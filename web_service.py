@@ -88,7 +88,9 @@ def screenshot_pdf_keyword(pdf_path: Path, out_path: Path) -> bool:
                 else:
                     bottom_y = header.y0 + 480
             clip = fitz.Rect(header.x0, header.y0, right_x, bottom_y + 1)
-            pix = page.get_pixmap(clip=clip, dpi=200, colorspace=fitz.csRGB)
+            pix = page.get_pixmap(clip=clip, dpi=150)
+            if pix.n != 3:
+                pix = fitz.Pixmap(fitz.csRGB, pix)
             pix.save(str(out_path))
             return True
     finally:
@@ -255,13 +257,17 @@ async def crop_xrf(request: Request):
         raise HTTPException(status_code=401, detail="Unauthorized")
     body = await request.json()
     pdf_url = body.get("pdf_url", "")
-    if not pdf_url:
-        raise HTTPException(status_code=400, detail="缺少 pdf_url")
+    pdf_b64 = body.get("pdf_b64", "")
+    if not pdf_url and not pdf_b64:
+        raise HTTPException(status_code=400, detail="缺少 pdf_url 或 pdf_b64")
     with tempfile.TemporaryDirectory() as tmp_dir:
         tmp = Path(tmp_dir)
-        pdf_path = download(pdf_url, tmp / "xrf.pdf")
-        if not pdf_path:
-            raise HTTPException(status_code=400, detail="PDF 下載失敗")
+        pdf_path = tmp / "xrf.pdf"
+        if pdf_b64:
+            pdf_path.write_bytes(base64.b64decode(pdf_b64))
+        else:
+            if not download(pdf_url, pdf_path):
+                raise HTTPException(status_code=400, detail="PDF 下載失敗")
         xrf_png = tmp / "xrf_chart.png"
         ok = screenshot_pdf_keyword(pdf_path, xrf_png)
         if not ok:
