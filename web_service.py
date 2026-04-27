@@ -12,8 +12,10 @@ import mimetypes
 from datetime import datetime
 from pathlib import Path
 
+import io
 import requests
 import fitz  # PyMuPDF
+from PIL import Image
 from docx import Document
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
@@ -89,19 +91,51 @@ def screenshot_pdf_keyword(pdf_path: Path, out_path: Path) -> bool:
                     bottom_y = header.y0 + 480
             clip = fitz.Rect(header.x0, header.y0, right_x, bottom_y + 1)
 
-            # 結果欄位為 ND 的列，畫白色矩形蓋掉
-            # 結果欄 x 範圍：元素欄右側 ~ 3-sigma 欄左側
+            # 結果欄位為 ND 的列，找出像素座標後用 Pillow 徹底移除
             nd_hits = [r for r in page.search_for("ND")
                        if r.x0 >= header.x0 - 5 and r.x1 <= sig.x0 + 5
                        and r.y0 >= header.y1 - 1 and r.y1 <= bottom_y + 1]
-            for nd in nd_hits:
-                row_rect = fitz.Rect(clip.x0 - 1, nd.y0 - 0.5, clip.x1 + 1, nd.y1 + 0.5)
-                page.draw_rect(row_rect, color=(1, 1, 1), fill=(1, 1, 1), width=0)
 
             pix = page.get_pixmap(clip=clip, dpi=150)
             if pix.n != 3:
                 pix = fitz.Pixmap(fitz.csRGB, pix)
-            pix.save(str(out_path))
+
+            if nd_hits:
+                scale = 150 / 72
+                img = Image.open(io.BytesIO(pix.tobytes("png")))
+                img_h = img.height
+
+                # 計算要刪除的像素行範圍（合併重疊區間）
+                nd_rows: list[list[int]] = []
+                for nd in nd_hits:
+                    py0 = max(0, int((nd.y0 - clip.y0) * scale) - 1)
+                    py1 = min(img_h, int((nd.y1 - clip.y0) * scale) + 2)
+                    if nd_rows and py0 <= nd_rows[-1][1]:
+                        nd_rows[-1][1] = max(nd_rows[-1][1], py1)
+                    else:
+                        nd_rows.append([py0, py1])
+
+                # 保留的像素行段落
+                keep: list[tuple[int, int]] = []
+                prev = 0
+                for y0, y1 in nd_rows:
+                    if prev < y0:
+                        keep.append((prev, y0))
+                    prev = y1
+                if prev < img_h:
+                    keep.append((prev, img_h))
+
+                # 拼接保留段落
+                strips = [img.crop((0, y0, img.width, y1)) for y0, y1 in keep]
+                total_h = sum(s.height for s in strips)
+                new_img = Image.new("RGB", (img.width, total_h), (255, 255, 255))
+                offset = 0
+                for s in strips:
+                    new_img.paste(s, (0, offset))
+                    offset += s.height
+                new_img.save(str(out_path), "PNG")
+            else:
+                pix.save(str(out_path))
             return True
     finally:
         doc.close()
