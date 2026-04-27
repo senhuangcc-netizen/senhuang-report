@@ -283,7 +283,7 @@ function DraftPreview({ intake }: { intake: Intake }) {
           <td colSpan={3} style={td}>
             <span style={label}>鑑定說明 <En>Description</En>：</span>
             {desc
-              ? <span style={{ lineHeight: '1.8', fontFamily: KAITI, fontWeight: 'bold' }}>{desc}</span>
+              ? <span style={{ lineHeight: '1.15', fontFamily: KAITI, fontWeight: 'bold' }}>{desc}</span>
               : <span style={{ color: '#bbb', fontStyle: 'italic' }}>（待生成鑑定說明）</span>
             }
           </td>
