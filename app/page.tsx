@@ -60,6 +60,7 @@ export default function HomePage() {
   // 送檢單位管理
   const [inspectionUnits,  setInspectionUnits]  = useState<string[]>([])
   const [addingUnitFor,    setAddingUnitFor]     = useState<number | null>(null)
+  const [pickingUnitFor,   setPickingUnitFor]    = useState<number | null>(null)
   const [newUnitName,      setNewUnitName]       = useState('')
   // 快速儲存狀態
   const [quickSaved,       setQuickSaved]        = useState<number | null>(null)
@@ -653,31 +654,45 @@ export default function HomePage() {
                                           {CASE_STAGES.map(s => <option key={s} value={s}>{s}</option>)}
                                         </select>
 
-                                        {/* 送檢單位 tags */}
+                                        {/* 送檢單位：預設只顯示已選取標籤，點按才展開選擇器 */}
                                         <div className="flex items-center gap-1 flex-wrap">
-                                          {inspectionUnits.map(u => (
-                                            <button key={u} onClick={() => quickPatch(intake.id, { inspectionUnit: intake.inspection_unit === u ? null : u })}
-                                              className={`text-xs px-2 py-0.5 rounded-lg border transition-colors group/unit relative ${
-                                                intake.inspection_unit === u
-                                                  ? 'bg-blue-600 text-white border-blue-600'
-                                                  : 'border-gray-200 text-gray-600 hover:border-blue-400'
-                                              }`}>
-                                              {u}
-                                              <span onClick={e => { e.stopPropagation(); removeInspectionUnit(u) }}
-                                                className="hidden group-hover/unit:inline ml-1 text-xs opacity-60 hover:opacity-100">×</span>
-                                            </button>
-                                          ))}
-                                          {addingUnitFor === intake.id ? (
-                                            <div className="flex items-center gap-1">
-                                              <input autoFocus value={newUnitName} onChange={e => setNewUnitName(e.target.value)}
-                                                onKeyDown={e => { if (e.key === 'Enter') addInspectionUnit(); if (e.key === 'Escape') { setAddingUnitFor(null); setNewUnitName('') } }}
-                                                className="text-xs border border-gray-300 rounded-lg px-2 py-0.5 w-20 focus:outline-none focus:border-blue-400" placeholder="單位名稱" />
-                                              <button onClick={addInspectionUnit} className="text-xs text-blue-600 hover:text-blue-800">確認</button>
-                                              <button onClick={() => { setAddingUnitFor(null); setNewUnitName('') }} className="text-xs text-gray-400 hover:text-gray-600">✕</button>
+                                          {intake.inspection_unit && (
+                                            <span className="flex items-center gap-0.5 text-xs px-2 py-0.5 rounded-lg bg-blue-600 text-white border border-blue-600">
+                                              🔬 {intake.inspection_unit}
+                                              <button onClick={() => quickPatch(intake.id, { inspectionUnit: null })}
+                                                className="ml-1 opacity-70 hover:opacity-100">×</button>
+                                            </span>
+                                          )}
+                                          {pickingUnitFor === intake.id ? (
+                                            <div className="flex items-center gap-1 flex-wrap border border-blue-200 rounded-lg px-2 py-1 bg-blue-50">
+                                              {inspectionUnits.map(u => (
+                                                <button key={u} onClick={() => { quickPatch(intake.id, { inspectionUnit: u }); setPickingUnitFor(null) }}
+                                                  className="text-xs px-2 py-0.5 rounded-lg border border-gray-300 bg-white text-gray-700 hover:border-blue-400 hover:text-blue-600 group/unit relative">
+                                                  {u}
+                                                  <span onClick={e => { e.stopPropagation(); removeInspectionUnit(u) }}
+                                                    className="hidden group-hover/unit:inline ml-1 opacity-60 hover:opacity-100">×</span>
+                                                </button>
+                                              ))}
+                                              {addingUnitFor === intake.id ? (
+                                                <div className="flex items-center gap-1">
+                                                  <input autoFocus value={newUnitName} onChange={e => setNewUnitName(e.target.value)}
+                                                    onKeyDown={e => { if (e.key === 'Enter') addInspectionUnit(); if (e.key === 'Escape') { setAddingUnitFor(null); setNewUnitName('') } }}
+                                                    className="text-xs border border-gray-300 rounded-lg px-2 py-0.5 w-20 focus:outline-none focus:border-blue-400" placeholder="單位名稱" />
+                                                  <button onClick={addInspectionUnit} className="text-xs text-blue-600 hover:text-blue-800">確認</button>
+                                                  <button onClick={() => { setAddingUnitFor(null); setNewUnitName('') }} className="text-xs text-gray-400 hover:text-gray-600">✕</button>
+                                                </div>
+                                              ) : (
+                                                <button onClick={() => { setAddingUnitFor(intake.id); setNewUnitName('') }}
+                                                  className="text-xs px-2 py-0.5 rounded-lg border border-dashed border-gray-300 text-gray-400 hover:border-blue-400 hover:text-blue-500">+ 新增</button>
+                                              )}
+                                              <button onClick={() => { setPickingUnitFor(null); setAddingUnitFor(null) }}
+                                                className="text-xs text-gray-400 hover:text-gray-600 ml-1">收合</button>
                                             </div>
                                           ) : (
-                                            <button onClick={() => { setAddingUnitFor(intake.id); setNewUnitName('') }}
-                                              className="text-xs px-2 py-0.5 rounded-lg border border-dashed border-gray-300 text-gray-400 hover:border-blue-400 hover:text-blue-500">+ 新增</button>
+                                            <button onClick={() => setPickingUnitFor(intake.id)}
+                                              className="text-xs px-2 py-0.5 rounded-lg border border-dashed border-gray-300 text-gray-400 hover:border-blue-400 hover:text-blue-500">
+                                              {intake.inspection_unit ? '更改' : '🔬 設定送檢單位'}
+                                            </button>
                                           )}
                                         </div>
 
