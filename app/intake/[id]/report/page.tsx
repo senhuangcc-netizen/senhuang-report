@@ -302,7 +302,7 @@ function DraftPreview({ intake }: { intake: Intake }) {
         </tr>
       </table>
 
-      <div style={{ marginTop: '2pt', textAlign: 'center', fontSize: '9pt', color: '#888', lineHeight: '1.1' }}>
+      <div style={{ marginTop: '2pt', textAlign: 'center', fontSize: '9pt', color: '#111', lineHeight: '1.1' }}>
         TEL: +8862-82602664 &nbsp;｜&nbsp; Web: www.senhuang.org &nbsp;｜&nbsp; Email: info@senhuang.org
       </div>
 
