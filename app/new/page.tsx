@@ -484,6 +484,16 @@ export default function NewIntakePage() {
           >
             {draftSaving ? '暫存中...' : draftSaved ? '✓ 已暫存' : '暫存草稿'}
           </button>
+          {draftId && (
+            <a
+              href={`/intake/${draftId}/report`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3 py-1.5 border border-amber-400 text-amber-700 text-sm rounded-lg font-medium hover:bg-amber-50"
+            >
+              預覽報告
+            </a>
+          )}
           <button
             form="intake-form"
             type="submit"

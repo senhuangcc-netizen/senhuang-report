@@ -433,12 +433,17 @@ export default function ReportPreviewPage() {
           }
           .report-scale-wrapper { zoom: 1 !important; }
           #draft-report {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 210mm !important;
+            height: 297mm !important;
             margin: 0 !important;
             padding: 72px !important;
-            width: 100% !important;
-            min-height: auto !important;
             box-shadow: none !important;
             box-sizing: border-box !important;
+            overflow: hidden !important;
+            background: white !important;
           }
         }
         .docx-wrapper { background: #e5e7eb !important; padding: 24px 0; }
