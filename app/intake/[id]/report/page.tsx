@@ -268,8 +268,8 @@ function DraftPreview({ intake }: { intake: Intake }) {
 
         {/* 材質 / 形制 */}
         <tr>
-          <td style={td}>
-            <span style={label}>材質 <En>Material</En>：</span>
+          <td style={{ ...td, textAlign: 'center' }}>
+            <span style={{ ...label, textAlign: 'left' }}>材質 <En>Material</En>：</span>
             {mat || '—'}
           </td>
           <td colSpan={2} style={td}>
