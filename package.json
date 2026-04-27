@@ -1,6 +1,6 @@
 {
   "name": "intake-app",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -26,7 +26,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-"tailwindcss": "^4",
+    "tailwindcss": "^4",
     "typescript": "^5"
   }
 }
