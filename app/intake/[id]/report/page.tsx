@@ -201,14 +201,11 @@ function DraftPreview({ intake }: { intake: Intake }) {
         </div>
       </div>
 
-      <div style={PT12_HDR}>
-        送驗編號 <En>NO</En>：{intake.item_code}
-      </div>
-
-      {/* 送檢日 / 報告日 */}
-      <div style={{ display: 'flex', gap: '48pt', ...PT12_HDR }}>
-        <span>送檢日期 <En>S Date</En>：{fmtDate(intake.submission_date)}</span>
-        <span>報告日期 <En>R Date</En>：{fmtDate(intake.report_date)}</span>
+      {/* 送驗編號 / 送檢日 / 報告日 — grid 讓值對齊 */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'max-content auto', ...PT12_HDR }}>
+        <span>送驗編號 <En>NO</En>：</span><span>{intake.item_code}</span>
+        <span>送檢日期 <En>S Date</En>：</span><span>{fmtDate(intake.submission_date)}</span>
+        <span>報告日期 <En>R Date</En>：</span><span>{fmtDate(intake.report_date)}</span>
       </div>
 
       {presumed && (
@@ -231,17 +228,17 @@ function DraftPreview({ intake }: { intake: Intake }) {
           <td style={tdPhoto}><PhotoCell src={front} alt="主體照" placeholder="主體照" height={275} /></td>
           <td colSpan={2} style={tdPhoto}>
             {intake.xrf_chart_url ? (
-              <div style={{ width: '100%', height: 275, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff' }}>
-                <img src={intake.xrf_chart_url} alt="XRF 定量分析" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
+              <div style={{ width: '100%', height: 275, overflow: 'hidden', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', background: '#fff' }}>
+                <img src={intake.xrf_chart_url} alt="XRF 定量分析" style={{ width: '100%', objectFit: 'contain', display: 'block' }} />
               </div>
             ) : intake.xrf_pdf_url ? (
               <a href={intake.xrf_pdf_url} target="_blank" rel="noopener noreferrer"
-                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 275, textDecoration: 'none', color: '#2563eb' }}>
+                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', height: 275, textDecoration: 'none', color: '#2563eb', paddingTop: '8pt' }}>
                 <span style={{ fontSize: '32pt' }}>📄</span>
                 <span style={{ fontSize: '9pt', marginTop: '4pt', textAlign: 'center' }}>XRF 定量分析<br/>點擊查看 PDF</span>
               </a>
             ) : (
-              <div style={{ height: 275, background: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ height: 275, background: '#f9fafb', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: '8pt' }}>
                 <span style={{ fontSize: '9pt', color: '#bbb' }}>XRF 元素分析數據圖</span>
               </div>
             )}
