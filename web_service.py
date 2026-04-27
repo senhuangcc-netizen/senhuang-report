@@ -88,6 +88,16 @@ def screenshot_pdf_keyword(pdf_path: Path, out_path: Path) -> bool:
                 else:
                     bottom_y = header.y0 + 480
             clip = fitz.Rect(header.x0, header.y0, right_x, bottom_y + 1)
+
+            # 結果欄位為 ND 的列，畫白色矩形蓋掉
+            # 結果欄 x 範圍：元素欄右側 ~ 3-sigma 欄左側
+            nd_hits = [r for r in page.search_for("ND")
+                       if r.x0 >= header.x0 - 5 and r.x1 <= sig.x0 + 5
+                       and r.y0 >= header.y1 - 1 and r.y1 <= bottom_y + 1]
+            for nd in nd_hits:
+                row_rect = fitz.Rect(clip.x0 - 1, nd.y0 - 0.5, clip.x1 + 1, nd.y1 + 0.5)
+                page.draw_rect(row_rect, color=(1, 1, 1), fill=(1, 1, 1), width=0)
+
             pix = page.get_pixmap(clip=clip, dpi=150)
             if pix.n != 3:
                 pix = fitz.Pixmap(fitz.csRGB, pix)
