@@ -59,7 +59,7 @@ export default function HomePage() {
 
   // 送檢單位管理
   const [inspectionUnits,  setInspectionUnits]  = useState<string[]>([])
-  const [addingUnit,       setAddingUnit]        = useState(false)
+  const [addingUnitFor,    setAddingUnitFor]     = useState<number | null>(null)
   const [newUnitName,      setNewUnitName]       = useState('')
   // 快速儲存狀態
   const [quickSaved,       setQuickSaved]        = useState<number | null>(null)
@@ -212,7 +212,7 @@ export default function HomePage() {
     })
     setInspectionUnits(await res.json())
     setNewUnitName('')
-    setAddingUnit(false)
+    setAddingUnitFor(null)
   }
 
   const removeInspectionUnit = async (name: string) => {
@@ -664,16 +664,16 @@ export default function HomePage() {
                                                 className="hidden group-hover/unit:inline ml-1 text-xs opacity-60 hover:opacity-100">×</span>
                                             </button>
                                           ))}
-                                          {addingUnit ? (
+                                          {addingUnitFor === intake.id ? (
                                             <div className="flex items-center gap-1">
                                               <input autoFocus value={newUnitName} onChange={e => setNewUnitName(e.target.value)}
-                                                onKeyDown={e => { if (e.key === 'Enter') addInspectionUnit(); if (e.key === 'Escape') setAddingUnit(false) }}
+                                                onKeyDown={e => { if (e.key === 'Enter') addInspectionUnit(); if (e.key === 'Escape') { setAddingUnitFor(null); setNewUnitName('') } }}
                                                 className="text-xs border border-gray-300 rounded-lg px-2 py-0.5 w-20 focus:outline-none focus:border-blue-400" placeholder="單位名稱" />
                                               <button onClick={addInspectionUnit} className="text-xs text-blue-600 hover:text-blue-800">確認</button>
-                                              <button onClick={() => { setAddingUnit(false); setNewUnitName('') }} className="text-xs text-gray-400 hover:text-gray-600">✕</button>
+                                              <button onClick={() => { setAddingUnitFor(null); setNewUnitName('') }} className="text-xs text-gray-400 hover:text-gray-600">✕</button>
                                             </div>
                                           ) : (
-                                            <button onClick={() => setAddingUnit(true)}
+                                            <button onClick={() => { setAddingUnitFor(intake.id); setNewUnitName('') }}
                                               className="text-xs px-2 py-0.5 rounded-lg border border-dashed border-gray-300 text-gray-400 hover:border-blue-400 hover:text-blue-500">+ 新增</button>
                                           )}
                                         </div>
