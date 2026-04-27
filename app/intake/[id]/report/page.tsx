@@ -192,11 +192,11 @@ function DraftPreview({ intake }: { intake: Intake }) {
       style={{ width: '794px', minHeight: '1123px', margin: '0 auto', background: '#fff', boxShadow: '0 2px 12px rgba(0,0,0,0.15)', padding: '72px', fontFamily: FONT, position: 'relative', boxSizing: 'border-box', color: '#111' }}>
 
       {/* 標題 */}
-      <div style={{ textAlign: 'center', marginBottom: '6pt', paddingBottom: '4pt' }}>
-        <div style={{ fontSize: '14pt', fontWeight: 'bold', color: '#111', textDecoration: 'underline' }}>
+      <div style={{ textAlign: 'center', marginBottom: '4pt' }}>
+        <div style={{ fontSize: '14pt', fontWeight: 'bold', color: '#111', textDecoration: 'underline', lineHeight: '1.2' }}>
           東方森煌古物鑑定所檢驗報告
         </div>
-        <div style={{ fontSize: '12pt', fontWeight: 'bold', color: '#111', marginTop: '2pt' }}>
+        <div style={{ fontSize: '12pt', fontWeight: 'bold', color: '#111', lineHeight: '1.2' }}>
           Asia SenHuang Authentication Analysis Report
         </div>
       </div>
