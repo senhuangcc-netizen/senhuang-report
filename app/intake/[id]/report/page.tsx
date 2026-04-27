@@ -206,11 +206,10 @@ function DraftPreview({ intake }: { intake: Intake }) {
         <span>送驗編號 <En>NO</En>：</span>
         <span>{intake.item_code}</span>
 
-        {/* 送檢日期與報告日期同行：label 欄包含兩者，value 欄只放報告日期的值 */}
-        <span style={{ whiteSpace: 'nowrap' }}>
-          送檢日期 <En>S Date</En>：{fmtDate(intake.submission_date)}
-          <span style={{ display: 'inline-block', width: '24pt' }} />
-          報告日期 <En>R Date</En>：
+        {/* 送檢日期與報告日期同行：col1 用 flex space-between，報告日期標籤靠右對齊 col1 邊界，value 欄放報告日期值 */}
+        <span style={{ display: 'flex', justifyContent: 'space-between', gap: '12pt' }}>
+          <span style={{ whiteSpace: 'nowrap' }}>送檢日期 <En>S Date</En>：{fmtDate(intake.submission_date)}</span>
+          <span style={{ whiteSpace: 'nowrap' }}>報告日期 <En>R Date</En>：</span>
         </span>
         <span>{fmtDate(intake.report_date)}</span>
 
