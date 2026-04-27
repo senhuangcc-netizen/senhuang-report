@@ -189,7 +189,7 @@ function DraftPreview({ intake }: { intake: Intake }) {
   return (
     <ScaledA4Wrapper>
     <div id="draft-report"
-      style={{ width: '794px', minHeight: '1123px', margin: '0 auto', background: '#fff', boxShadow: '0 2px 12px rgba(0,0,0,0.15)', padding: '72px', fontFamily: FONT, position: 'relative', boxSizing: 'border-box', color: '#111' }}>
+      style={{ width: '794px', minHeight: '1123px', margin: '0 auto', background: '#fff', boxShadow: '0 2px 12px rgba(0,0,0,0.15)', padding: '91px', fontFamily: FONT, position: 'relative', boxSizing: 'border-box', color: '#111' }}>
 
       {/* 標題 */}
       <div style={{ textAlign: 'center', marginBottom: '4pt' }}>
@@ -444,7 +444,7 @@ export default function ReportPreviewPage() {
             width: 210mm !important;
             height: 297mm !important;
             margin: 0 !important;
-            padding: 72px !important;
+            padding: 91px !important;
             box-shadow: none !important;
             box-sizing: border-box !important;
             overflow: hidden !important;
