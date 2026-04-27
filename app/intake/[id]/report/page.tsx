@@ -153,6 +153,7 @@ function DraftPreview({ intake }: { intake: Intake }) {
 
   const FONT = '"PMingLiU", "新細明體", "MingLiU", "細明體", "SimSun", serif'
   const PT12: React.CSSProperties = { fontSize: '12pt', lineHeight: '1.6', color: '#111' }
+  const PT12_HDR: React.CSSProperties = { ...PT12, lineHeight: '1.2', marginBottom: '1pt' }
 
   const td: React.CSSProperties = {
     border: '1px solid #888',
@@ -196,22 +197,22 @@ function DraftPreview({ intake }: { intake: Intake }) {
         </div>
       </div>
 
-      <div style={{ marginBottom: '2pt', ...PT12 }}>
+      <div style={PT12_HDR}>
         送驗編號 NO：{intake.item_code}
       </div>
 
       {/* 送檢日 / 報告日 */}
-      <div style={{ marginBottom: '2pt', display: 'flex', gap: '48pt', ...PT12 }}>
+      <div style={{ display: 'flex', gap: '48pt', ...PT12_HDR }}>
         <span>送檢日期 S Date：{fmtDate(intake.submission_date)}</span>
         <span>報告日期 R Date：{fmtDate(intake.report_date)}</span>
       </div>
 
       {presumed && (
-        <div style={{ marginBottom: '2pt', ...PT12 }}>
+        <div style={PT12_HDR}>
           顧客推估年代/形制 Presumed by customers：{presumed}
         </div>
       )}
-      <div style={{ marginBottom: '2pt', ...PT12 }}>送檢相關圖片 Item Pix：</div>
+      <div style={{ ...PT12_HDR, marginBottom: '4pt' }}>送檢相關圖片 Item Pix：</div>
 
       {/* 主表格 */}
       <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
