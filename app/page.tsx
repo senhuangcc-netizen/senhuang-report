@@ -537,7 +537,7 @@ export default function HomePage() {
               disabled={reorganizing === 'loading'}
               className="px-3 py-2 border border-gray-200 text-gray-500 text-sm rounded-xl font-medium hover:bg-gray-50 disabled:opacity-40"
             >
-              {reorganizing === 'loading' ? '整理中…' : '整理試算表'}
+              {reorganizing === 'loading' ? '還原中…' : '還原試算表'}
             </button>
             <Link href="/labels" className="px-3 py-2 border border-gray-200 text-gray-500 text-sm rounded-xl font-medium hover:bg-gray-50">
               列印標籤

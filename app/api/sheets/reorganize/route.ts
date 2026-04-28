@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
-import { reorganizeAllSheets } from '@/lib/sheets'
+import { cleanupAllSheets } from '@/lib/sheets'
 
 export async function POST() {
   try {
-    await reorganizeAllSheets()
+    await cleanupAllSheets()
     return NextResponse.json({ success: true })
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
