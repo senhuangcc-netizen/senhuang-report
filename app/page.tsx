@@ -68,7 +68,6 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [generating, setGenerating] = useState<number | null>(null)
-  const [reorganizing, setReorganizing] = useState<'loading' | 'done' | 'error' | null>(null)
   const [deleting, setDeleting] = useState<number | null>(null)
   const [openFolders, setOpenFolders] = useState<Set<string>>(new Set())
   const [openItems, setOpenItems] = useState<Set<number>>(new Set())
@@ -523,23 +522,7 @@ export default function HomePage() {
             <p className="text-xs text-gray-600">Oriental Senhuang Intake System</p>
           </div>
           <div className="flex gap-2">
-            {reorganizing === 'done' && <span className="text-xs text-green-600 self-center">✓ 整理完成</span>}
-            {reorganizing === 'error' && <span className="text-xs text-red-500 self-center">整理失敗</span>}
-            <button
-              onClick={async () => {
-                setReorganizing('loading')
-                try {
-                  const r = await fetch('/api/sheets/reorganize', { method: 'POST' })
-                  setReorganizing(r.ok ? 'done' : 'error')
-                } catch { setReorganizing('error') }
-                setTimeout(() => setReorganizing(null), 3000)
-              }}
-              disabled={reorganizing === 'loading'}
-              className="px-3 py-2 border border-gray-200 text-gray-500 text-sm rounded-xl font-medium hover:bg-gray-50 disabled:opacity-40"
-            >
-              {reorganizing === 'loading' ? '還原中…' : '還原試算表'}
-            </button>
-            <Link href="/labels" className="px-3 py-2 border border-gray-200 text-gray-500 text-sm rounded-xl font-medium hover:bg-gray-50">
+<Link href="/labels" className="px-3 py-2 border border-gray-200 text-gray-500 text-sm rounded-xl font-medium hover:bg-gray-50">
               列印標籤
             </Link>
           </div>
