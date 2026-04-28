@@ -28,8 +28,8 @@ export async function POST(req: NextRequest) {
   const d = new Date()
   const dateStr = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`
   const ym = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}`
-  const safeName = (body.customerName || '').replace(/[^a-zA-Z0-9一-鿿]/g, '')
-  const folderName = `xray_${safeName}_${ym}`
+  const safeName = ((body.customerName as string) || '').replace(/[/\\:*?"<>|]/g, '_').trim()
+  const folderName = `${safeName}_${ym}`
   const folderLetter = await nextItemCode(folderName)
   const barcodeStr: string = body.barcode || ''
   const labelSuffix = barcodeStr.slice(-3).toUpperCase()

@@ -314,26 +314,31 @@ export default function HomePage() {
 
   // 依客戶名稱分組（intake + xray 合併）
   const customerGroups = useMemo(() => {
-    const intakeMap = new Map<string, Intake[]>()
-    for (const i of filtered) {
+    // 本月有記錄的客戶 key
+    const activeKeys = new Set([
+      ...filtered.map(i => i.customer_name || '（未填客戶）'),
+      ...filteredXrays.map(x => x.customer_name || '（未填客戶）'),
+    ])
+    // 全部紀錄的 map（不分月份）
+    const allIntakeMap = new Map<string, Intake[]>()
+    for (const i of intakes) {
       const key = i.customer_name || '（未填客戶）'
-      if (!intakeMap.has(key)) intakeMap.set(key, [])
-      intakeMap.get(key)!.push(i)
+      if (!allIntakeMap.has(key)) allIntakeMap.set(key, [])
+      allIntakeMap.get(key)!.push(i)
     }
-    const xrayMap = new Map<string, XrayRecord[]>()
-    for (const x of filteredXrays) {
+    const allXrayMap = new Map<string, XrayRecord[]>()
+    for (const x of xrays) {
       const key = x.customer_name || '（未填客戶）'
-      if (!xrayMap.has(key)) xrayMap.set(key, [])
-      xrayMap.get(key)!.push(x)
+      if (!allXrayMap.has(key)) allXrayMap.set(key, [])
+      allXrayMap.get(key)!.push(x)
     }
-    // 合併所有客戶 key
-    const allKeys = new Set([...intakeMap.keys(), ...xrayMap.keys()])
-    return Array.from(allKeys).map(k => ({
+    // 本月活躍的客戶顯示其全部紀錄
+    return Array.from(activeKeys).map(k => ({
       customerName: k,
-      intakes: intakeMap.get(k) ?? [],
-      xrays: xrayMap.get(k) ?? [],
+      intakes: allIntakeMap.get(k) ?? [],
+      xrays: allXrayMap.get(k) ?? [],
     }))
-  }, [filtered, filteredXrays])
+  }, [filtered, filteredXrays, intakes, xrays])
 
   const generateReport = async (intake: Intake) => {
     setGenerating(intake.id)

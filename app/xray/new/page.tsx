@@ -13,6 +13,7 @@ type AngleType = (typeof ANGLE_TYPES)[number]
 export default function XrayNewPage() {
   const router = useRouter()
 
+  const [editId,       setEditId]       = useState<string | null>(null)
   const [customerName, setCustomerName] = useState('')
   const [barcode,      setBarcode]      = useState('')
   const [itemType,     setItemType]     = useState<ItemType | ''>('')
@@ -28,13 +29,31 @@ export default function XrayNewPage() {
   const [saving,       setSaving]       = useState(false)
   const [error,        setError]        = useState('')
 
-  // 從 URL 預填
+  // 從 URL 預填 or 載入既有紀錄（edit 模式）
   useEffect(() => {
     const p = new URLSearchParams(window.location.search)
     const cn = p.get('customer') || ''
     const bc = p.get('barcode') || ''
+    const eid = p.get('edit') || ''
     if (cn) setCustomerName(decodeURIComponent(cn))
     if (bc) setBarcode(decodeURIComponent(bc))
+    if (eid) {
+      setEditId(eid)
+      fetch(`/api/xray/${eid}`)
+        .then(r => r.json())
+        .then(d => {
+          setCustomerName(d.customer_name || '')
+          setBarcode(d.barcode || '')
+          setItemType((d.item_type as ItemType) || '')
+          setItemCustom(d.item_type_custom || '')
+          setAngle((d.angle as AngleType) || '')
+          setAngleCustom(d.angle_custom || '')
+          setMainPhotos(JSON.parse(d.main_photos || '[]'))
+          setXrayPhotos(JSON.parse(d.xray_photos || '[]'))
+          setNote(d.note || '')
+          setOperator(d.operator || '')
+        })
+    }
   }, [])
 
   // 操作員
@@ -55,24 +74,36 @@ export default function XrayNewPage() {
     setSaving(true)
     setError('')
     try {
-      const res = await fetch('/api/xray', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          customerName,
-          barcode,
-          itemType,
-          itemTypeCustom: itemType === '其他' ? itemCustom : null,
-          angle,
-          angleCustom: angle === '其他' ? angleCustom : null,
-          mainPhotos,
-          xrayPhotos,
-          operator,
-          note,
-        }),
-      })
-      if (!res.ok) throw new Error('儲存失敗')
-      const { id } = await res.json()
+      const payload = {
+        customerName,
+        barcode,
+        itemType,
+        itemTypeCustom: itemType === '其他' ? itemCustom : null,
+        angle,
+        angleCustom: angle === '其他' ? angleCustom : null,
+        mainPhotos,
+        xrayPhotos,
+        operator,
+        note,
+      }
+      let id = editId
+      if (editId) {
+        const res = await fetch(`/api/xray/${editId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+        if (!res.ok) throw new Error('更新失敗')
+      } else {
+        const res = await fetch('/api/xray', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+        if (!res.ok) throw new Error('儲存失敗')
+        const data = await res.json()
+        id = data.id
+      }
       router.push(`/xray/${id}`)
     } catch (e) {
       setError(String(e))
@@ -86,7 +117,7 @@ export default function XrayNewPage() {
       <header className="sticky top-0 bg-white border-b px-4 py-3 flex items-center gap-3 shadow-sm z-40">
         <button onClick={() => router.back()} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">←</button>
         <div className="flex-1">
-          <h1 className="font-bold text-gray-900">X光照建檔</h1>
+          <h1 className="font-bold text-gray-900">{editId ? 'X光照編輯' : 'X光照建檔'}</h1>
           {customerName && <p className="text-xs text-gray-600">{customerName}</p>}
         </div>
         {operators.length > 0 && (
@@ -126,7 +157,7 @@ export default function XrayNewPage() {
               placeholder="掃描或手動輸入"
             />
           </div>
-          <p className="text-xs text-gray-400">編碼（QR後三碼 + 資料夾字母）將於儲存後自動生成</p>
+          {!editId && <p className="text-xs text-gray-400">編碼（QR後三碼 + 資料夾字母）將於儲存後自動生成</p>}
         </section>
 
         {/* 拍攝品項 */}
@@ -229,7 +260,7 @@ export default function XrayNewPage() {
           disabled={saving || uploading}
           className="w-full bg-amber-600 text-white font-bold py-4 rounded-2xl shadow-sm disabled:opacity-40 text-base"
         >
-          {uploading ? '照片上傳中…' : saving ? '儲存中…' : '儲存 X光照紀錄'}
+          {uploading ? '照片上傳中…' : saving ? '儲存中…' : editId ? '更新 X光照紀錄' : '儲存 X光照紀錄'}
         </button>
       </div>
     </div>

@@ -176,6 +176,11 @@ export default function XrayDetailPage({ params }: { params: Promise<{ id: strin
           <p className="text-xs text-gray-500">{rec.customer_name}｜{rec.xray_code}</p>
         </div>
         <div className="flex gap-2">
+          <button
+            onClick={() => router.push(`/xray/new?edit=${resolvedId.current}`)}
+            className="px-3 py-1.5 border border-gray-300 text-gray-600 text-sm rounded-lg hover:bg-gray-50 font-medium">
+            編輯
+          </button>
           {docUrl && (
             <a href={docUrl} download
               className="px-3 py-1.5 border border-green-400 text-green-700 text-sm rounded-lg hover:bg-green-50 font-medium">
