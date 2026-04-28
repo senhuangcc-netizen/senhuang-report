@@ -104,11 +104,12 @@ export default function HomePage() {
   const openAddReport = () => {
     setAddReportCustomer('')
     setAddReportSearch('')
+    const names = Array.from(new Set([
+      ...intakes.map(i => i.customer_name).filter(Boolean),
+      ...xrays.map(x => x.customer_name).filter(Boolean),
+    ])).sort() as string[]
+    setCustomerList(names)
     setAddReportOpen(true)
-    fetch('/api/customers')
-      .then(r => r.json())
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .then((list: any[]) => setCustomerList(Array.isArray(list) ? list.map((c: any) => c.name) : []))
   }
 
   const handleAddReportScan = async (scanned: string) => {
