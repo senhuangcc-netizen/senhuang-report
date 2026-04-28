@@ -6,7 +6,7 @@ const CARD_SHEET_ID = '1gfrwOfTNGh27LlN4Qh032eVN84rtGJGdcXKXEV3DYO0'
 // ── 報告總表同步 ──────────────────────────────────────────────
 
 const REPORT_HEADERS = [
-  '編號', '客戶名稱', '資料夾名稱', '品項代碼', '標籤碼',
+  '資料夾名稱', '品項代碼', '標籤碼',
   '鑑定卡號', '卡狀態', '建檔類型', '鑑定結果', '尺寸', '重量',
   '送驗日期', '報告日期', '備註', '形制資料', '真品預設',
   'XRF PDF', 'XRF圖', 'PDF路徑', '報告路徑', '操作員', '狀態',
@@ -108,8 +108,6 @@ async function ensureSheet(title: string): Promise<number> {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function intakeToRow(intake: Record<string, any>): string[] {
   return [
-    String(intake.id ?? ''),
-    String(intake.customer_name ?? ''),
     String(intake.folder_name ?? ''),
     String(intake.item_code ?? ''),
     String(intake.barcode ?? ''),
@@ -160,22 +158,26 @@ async function syncToSheet(
   headers: string[],
   rowId: string,
   rowData: string[],
+  keyColRange = 'A:A',
 ) {
   const sheetId = await ensureSheet(sheetTitle)
 
-  const data = await sheetReq('GET', `/values/${encodeURIComponent(sheetTitle)}!A:A`)
-  const values: string[][] = data.values ?? []
+  // 表頭偵測用 A1（不受 keyColRange 影響）
+  const headData = await sheetReq('GET', `/values/${encodeURIComponent(sheetTitle)}!A1:A1`)
+  const firstCell: string = headData.values?.[0]?.[0] ?? ''
 
-  if (values.length === 0 || values[0]?.[0] !== headers[0]) {
-    // 初始化表頭，新資料插在第二行
+  if (!firstCell || firstCell !== headers[0]) {
     await sheetReq('PUT', `/values/${encodeURIComponent(sheetTitle)}!A1?valueInputOption=RAW`, { values: [headers] })
     await sheetReq('PUT', `/values/${encodeURIComponent(sheetTitle)}!A2?valueInputOption=RAW`, { values: [rowData] })
     return
   }
 
-  const idx = values.findIndex(r => r[0] === rowId)
+  // 在指定欄搜尋 rowId
+  const keyData = await sheetReq('GET', `/values/${encodeURIComponent(sheetTitle)}!${keyColRange}`)
+  const keyValues: string[][] = keyData.values ?? []
+  const idx = rowId ? keyValues.findIndex(r => r[0] === rowId) : -1
+
   if (idx === -1) {
-    // 新資料：在表頭下方插入一行，最新的在最上方
     await sheetReq('POST', `/:batchUpdate`, {
       requests: [{
         insertDimension: {
@@ -186,7 +188,6 @@ async function syncToSheet(
     })
     await sheetReq('PUT', `/values/${encodeURIComponent(sheetTitle)}!A2?valueInputOption=RAW`, { values: [rowData] })
   } else {
-    // 更新既有行
     await sheetReq('PUT', `/values/${encodeURIComponent(sheetTitle)}!A${idx + 1}?valueInputOption=RAW`, {
       values: [rowData],
     })
@@ -368,11 +369,26 @@ async function reorganizeSheet(sheetTitle: string, nameColIdx: number, dateColId
   await sheetReq('POST', '/:batchUpdate', { requests })
 }
 
+// 一次性遷移：若報告總表仍有「編號」「客戶名稱」舊欄位，直接從 Sheet 刪除
+async function migrateReportHeaders(sheetTitle: string) {
+  const sheetId = await ensureSheet(sheetTitle)
+  const raw = await sheetReq('GET', `/values/${encodeURIComponent(sheetTitle)}!A1:B1`)
+  const firstRow: string[] = raw.values?.[0] ?? []
+  if (firstRow[0] !== '編號') return
+  const endIdx = firstRow[1] === '客戶名稱' ? 2 : 1
+  await sheetReq('POST', '/:batchUpdate', {
+    requests: [{ deleteDimension: {
+      range: { sheetId, dimension: 'COLUMNS', startIndex: 0, endIndex: endIdx }
+    }}]
+  })
+}
+
 export async function reorganizeAllSheets() {
   if (!process.env.GOOGLE_SERVICE_ACCOUNT_KEY || !process.env.GOOGLE_SHEET_ID) return
   const names = await getSheetNames()
   const reportTab = names[0] ?? '報告總表'
-  await reorganizeSheet(reportTab,  1, 22)  // B=客戶名稱, W=建立時間
+  await migrateReportHeaders(reportTab)
+  await reorganizeSheet(reportTab,  0, 20)  // A=資料夾名稱, U=建立時間
   await reorganizeSheet('X光總表',   1, 10)  // B=客戶名稱, K=建立時間
   await reorganizeSheet('客戶總表',  1, 9)   // B=姓名,     J=建立時間
 }
@@ -390,7 +406,7 @@ export async function syncIntake(intake: Record<string, any>) {
     const reportTab = names[0] ?? 'Sheet1'
     console.log('[sheets] tabs=', names, 'using=', reportTab)
 
-    await syncToSheet(reportTab, REPORT_HEADERS, String(intake.id), intakeToRow(intake))
+    await syncToSheet(reportTab, REPORT_HEADERS, String(intake.item_code ?? ''), intakeToRow(intake), 'B:B')
     console.log('[sheets] syncIntake done id=', intake.id)
   } catch (e) {
     console.error('[sheets] syncIntake error:', e)
