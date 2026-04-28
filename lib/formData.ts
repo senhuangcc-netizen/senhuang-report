@@ -1,6 +1,6 @@
 export const BUILDING_TYPES = ['古玉器', '古銅器', '瓷器', '粉質佛牌', '金屬佛牌'] as const
 
-export const CASE_STAGES = ['收件', '送檢中', '拍照', '報告產製', '後台上架', '鑑定卡', '完成'] as const
+export const CASE_STAGES = ['收件', '送檢中', '主體', '顯微', '360', '報告產製', '後台上架', '鑑定卡', '完成'] as const
 export type CaseStage = (typeof CASE_STAGES)[number]
 export type BuildingType = (typeof BUILDING_TYPES)[number]
 

@@ -19,6 +19,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     await sql`UPDATE intakes SET weight = ${body.weight || null}, updated_at = NOW() WHERE id = ${intId}`
   if ('caseStage' in body)
     await sql`UPDATE intakes SET case_stage = ${body.caseStage || '收件'}, updated_at = NOW() WHERE id = ${intId}`
+  if ('completedStages' in body)
+    await sql`UPDATE intakes SET case_stage = ${JSON.stringify(body.completedStages ?? [])}, updated_at = NOW() WHERE id = ${intId}`
 
   // 追加收件照（不覆蓋其他照片）
   if ('addIntakePhoto' in body && body.addIntakePhoto) {

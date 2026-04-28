@@ -1,37 +1,30 @@
 'use client'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { BUILDING_TYPES } from '@/lib/formData'
 import SimplePhotoUpload from '@/components/SimplePhotoUpload'
 
-const ITEM_TYPES = [...BUILDING_TYPES, '其他'] as const
+const ITEM_TYPES = ['金屬','木質','陶瓷','泥質','礦物玉石','塑料','其他'] as const
 type ItemType = (typeof ITEM_TYPES)[number]
 
-function genXrayCode(barcode: string): string {
-  const d = new Date()
-  const date = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`
-  const clean = barcode.replace(/\s/g, '').toUpperCase()
-  // Extract first alpha char as letter, then next 2 digits (zero-padded) → e.g. K06
-  const letterMatch = clean.match(/[A-Z]/)
-  const letter = letterMatch ? letterMatch[0] : 'X'
-  const afterLetter = clean.slice((letterMatch?.index ?? 0) + 1)
-  const digits = (afterLetter.match(/\d+/g) || []).join('').slice(0, 2).padStart(2, '0')
-  return `${date}-${letter}${digits}`
-}
+const ANGLE_TYPES = ['正面','頂部','底部','側面','俯/仰角','其他'] as const
+type AngleType = (typeof ANGLE_TYPES)[number]
+
 
 export default function XrayNewPage() {
   const router = useRouter()
 
   const [customerName, setCustomerName] = useState('')
   const [barcode,      setBarcode]      = useState('')
-  const [xrayCode,     setXrayCode]     = useState('')
   const [itemType,     setItemType]     = useState<ItemType | ''>('')
   const [itemCustom,   setItemCustom]   = useState('')
+  const [angle,        setAngle]        = useState<AngleType | ''>('')
+  const [angleCustom,  setAngleCustom]  = useState('')
   const [mainPhotos,   setMainPhotos]   = useState<string[]>([])
   const [xrayPhotos,   setXrayPhotos]   = useState<string[]>([])
   const [operators,    setOperators]    = useState<string[]>([])
   const [operator,     setOperator]     = useState('')
   const [note,         setNote]         = useState('')
+  const [uploading,    setUploading]    = useState(false)
   const [saving,       setSaving]       = useState(false)
   const [error,        setError]        = useState('')
 
@@ -41,10 +34,7 @@ export default function XrayNewPage() {
     const cn = p.get('customer') || ''
     const bc = p.get('barcode') || ''
     if (cn) setCustomerName(decodeURIComponent(cn))
-    if (bc) {
-      setBarcode(decodeURIComponent(bc))
-      setXrayCode(genXrayCode(decodeURIComponent(bc)))
-    }
+    if (bc) setBarcode(decodeURIComponent(bc))
   }, [])
 
   // 操作員
@@ -55,20 +45,13 @@ export default function XrayNewPage() {
     })
   }, [])
 
-  // 條碼改動時同步更新編碼
-  const barcodeChanged = (v: string) => {
-    setBarcode(v)
-    setXrayCode(genXrayCode(v))
-  }
-
-  const folderKey = customerName
-    ? `xray_${customerName.replace(/[/\\:*?"<>|]/g, '_')}_${new Date().getFullYear()}${String(new Date().getMonth()+1).padStart(2,'0')}`
-    : 'xray_unknown'
 
   const handleSave = async () => {
     if (!customerName.trim()) { setError('請填寫客戶名稱'); return }
     if (!itemType)            { setError('請選擇拍攝品項'); return }
     if (itemType === '其他' && !itemCustom.trim()) { setError('請填寫自訂品項名稱'); return }
+    if (!angle)               { setError('請選擇拍攝角度'); return }
+    if (angle === '其他' && !angleCustom.trim()) { setError('請填寫自訂角度'); return }
     setSaving(true)
     setError('')
     try {
@@ -78,9 +61,10 @@ export default function XrayNewPage() {
         body: JSON.stringify({
           customerName,
           barcode,
-          xrayCode,
           itemType,
           itemTypeCustom: itemType === '其他' ? itemCustom : null,
+          angle,
+          angleCustom: angle === '其他' ? angleCustom : null,
           mainPhotos,
           xrayPhotos,
           operator,
@@ -88,9 +72,8 @@ export default function XrayNewPage() {
         }),
       })
       if (!res.ok) throw new Error('儲存失敗')
-      // 回到掃描頁繼續下一件
-      const returnTo = new URLSearchParams(window.location.search).get('returnTo') || '/scan'
-      router.push(`${returnTo}?customer=${encodeURIComponent(customerName)}&mode=xray`)
+      const { id } = await res.json()
+      router.push(`/xray/${id}`)
     } catch (e) {
       setError(String(e))
     } finally {
@@ -139,19 +122,11 @@ export default function XrayNewPage() {
             <input
               className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-mono text-gray-900 focus:outline-none focus:border-amber-500"
               value={barcode}
-              onChange={e => barcodeChanged(e.target.value)}
+              onChange={e => setBarcode(e.target.value)}
               placeholder="掃描或手動輸入"
             />
           </div>
-
-          <div>
-            <label className="block text-xs text-gray-700 mb-1">編碼（建檔日期 + QR前三碼，自動生成）</label>
-            <input
-              className="w-full border border-dashed border-gray-300 rounded-xl px-3 py-2 text-sm font-mono text-gray-600 bg-gray-50 focus:outline-none focus:border-amber-400"
-              value={xrayCode}
-              onChange={e => setXrayCode(e.target.value)}
-            />
-          </div>
+          <p className="text-xs text-gray-400">編碼（QR後三碼 + 資料夾字母）將於儲存後自動生成</p>
         </section>
 
         {/* 拍攝品項 */}
@@ -184,13 +159,43 @@ export default function XrayNewPage() {
           )}
         </section>
 
+        {/* 拍攝角度 */}
+        <section className="bg-white rounded-2xl p-4 shadow-sm space-y-3">
+          <h2 className="font-semibold text-gray-800 border-b pb-2">拍攝角度 *</h2>
+          <div className="grid grid-cols-3 gap-2">
+            {ANGLE_TYPES.map(t => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setAngle(t)}
+                className={`py-2 text-sm rounded-xl border font-medium transition-colors ${
+                  angle === t
+                    ? 'bg-amber-600 text-white border-amber-600'
+                    : 'bg-white border-gray-200 text-gray-700 hover:border-amber-400'
+                }`}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+          {angle === '其他' && (
+            <input
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:outline-none focus:border-amber-500"
+              value={angleCustom}
+              onChange={e => setAngleCustom(e.target.value)}
+              placeholder="手動輸入角度…"
+            />
+          )}
+        </section>
+
         {/* 主體照 */}
         <section className="bg-white rounded-2xl p-4 shadow-sm">
           <h2 className="font-semibold text-gray-800 border-b pb-3 mb-3">主體照</h2>
           <SimplePhotoUpload
             paths={mainPhotos}
             onChange={setMainPhotos}
-            folder={folderKey}
+            onUploadingChange={u => setUploading(prev => u || prev)}
+            folder={`xray_${customerName.replace(/[/\\:*?"<>|]/g, '_') || 'unknown'}`}
             category="主體照"
           />
         </section>
@@ -201,7 +206,8 @@ export default function XrayNewPage() {
           <SimplePhotoUpload
             paths={xrayPhotos}
             onChange={setXrayPhotos}
-            folder={folderKey}
+            onUploadingChange={setUploading}
+            folder={`xray_${customerName.replace(/[/\\:*?"<>|]/g, '_') || 'unknown'}`}
             category="X光照"
           />
         </section>
@@ -220,10 +226,10 @@ export default function XrayNewPage() {
         {/* 儲存 */}
         <button
           onClick={handleSave}
-          disabled={saving || !customerName.trim() || !itemType}
+          disabled={saving || uploading}
           className="w-full bg-amber-600 text-white font-bold py-4 rounded-2xl shadow-sm disabled:opacity-40 text-base"
         >
-          {saving ? '儲存中…' : '儲存 X光照紀錄'}
+          {uploading ? '照片上傳中…' : saving ? '儲存中…' : '儲存 X光照紀錄'}
         </button>
       </div>
     </div>

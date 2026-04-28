@@ -11,13 +11,18 @@ function makeCode() {
   return `${prefix}${letter}${digits}`
 }
 
-// 預設：3.5×10cm 長條，一條4格（35×25mm），兩欄8條 = 64格
-const DEFAULT_COLS    = 2
-const DEFAULT_ROWS    = 32
-const DEFAULT_LABEL_W = 35    // mm
-const DEFAULT_LABEL_H = 25    // mm
-const DEFAULT_COL_GAP = 0.5   // mm
+// AS513 規格：5欄 × 13列 = 65格，每格 38.1 × 21.2mm（含 5mm 列間隙時標籤高約 16.2mm）
+const DEFAULT_COLS    = 5
+const DEFAULT_ROWS    = 13
+const DEFAULT_LABEL_W = 38.1  // mm
+const DEFAULT_LABEL_H = 21.2  // mm
+const DEFAULT_COL_GAP = 0     // mm（AS513 無欄距）
+const DEFAULT_ROW_GAP = 0     // mm（依實體標籤紙調整）
 const QR_MIN_MM       = 8     // 最小 QR 邊長
+
+// AS513 頁邊距：A4(210×297mm) 扣除 5×38.1 / 13×21.2 後的餘量
+const PAGE_MARGIN_H = 9.75  // mm 左右
+const PAGE_MARGIN_V = 10.7  // mm 上下
 
 export default function LabelsPage() {
   const [cols,   setCols]   = useState(DEFAULT_COLS)
@@ -25,6 +30,7 @@ export default function LabelsPage() {
   const [labelW, setLabelW] = useState(DEFAULT_LABEL_W)
   const [labelH, setLabelH] = useState(DEFAULT_LABEL_H)
   const [colGap, setColGap] = useState(DEFAULT_COL_GAP)
+  const [rowGap, setRowGap] = useState(DEFAULT_ROW_GAP)
   const [codes,  setCodes]  = useState<string[]>([])
   const [qrUrls, setQrUrls] = useState<Record<string, string>>({})
 
@@ -72,7 +78,7 @@ export default function LabelsPage() {
             grid-template-columns: repeat(${cols}, ${labelW}mm);
             grid-template-rows: repeat(${rows}, ${labelH}mm);
             column-gap: ${colGap}mm;
-            row-gap: 0;
+            row-gap: ${rowGap}mm;
             width: ${cols * labelW + (cols - 1) * colGap}mm;
             margin: 0 auto;
           }
@@ -82,10 +88,11 @@ export default function LabelsPage() {
             display: flex;
             flex-direction: row;
             align-items: center;
+            justify-content: center;
             box-sizing: border-box;
             padding: 1mm;
             gap: 1.5mm;
-            border: 0.2mm solid #ccc;
+            border: none;
             overflow: hidden;
           }
           .label-cell img {
@@ -110,7 +117,7 @@ export default function LabelsPage() {
             line-height: 1;
             display: block;
           }
-          @page { size: A4 portrait; margin: 5mm; }
+          @page { size: A4 portrait; margin: ${PAGE_MARGIN_V}mm ${PAGE_MARGIN_H}mm; }
         }
       `}</style>
 
@@ -141,9 +148,15 @@ export default function LabelsPage() {
             <input type="number" min={0} max={10} step={0.5} value={colGap} onChange={e => setColGap(Number(e.target.value))}
               className="w-12 border border-gray-300 rounded px-1 py-0.5 text-center text-gray-900" />mm
           </label>
+          <label className="flex items-center gap-1">列距
+            <input type="number" min={0} max={10} step={0.5} value={rowGap} onChange={e => setRowGap(Number(e.target.value))}
+              className="w-12 border border-gray-300 rounded px-1 py-0.5 text-center text-gray-900" />mm
+          </label>
         </div>
 
         <div className="ml-auto flex gap-2">
+          <button onClick={() => { setCols(5); setRows(13); setLabelW(38.1); setLabelH(21.2); setColGap(0); setRowGap(0) }}
+            className="px-3 py-1.5 border border-amber-400 text-amber-700 text-sm rounded-lg hover:bg-amber-50 font-medium">AS513</button>
           <button onClick={generate}
             className="px-3 py-1.5 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50">重新產生</button>
           <button
@@ -165,13 +178,13 @@ export default function LabelsPage() {
       {/* 螢幕預覽 */}
       <div className="no-print p-4 overflow-auto">
         <p className="text-xs text-gray-600 mb-3 text-center">
-          每格 {labelW}×{labelH}mm｜QR {qrMm}mm｜欄距 {colGap}mm｜共 {count} 格
+          AS513（5×13）每格 {labelW}×{labelH}mm｜QR {qrMm}mm｜欄距 {colGap}mm｜列距 {rowGap}mm｜共 {count} 格
         </p>
         <div style={{
           display: 'grid',
           gridTemplateColumns: `repeat(${cols}, ${labelW * previewScale}px)`,
           columnGap: `${colGap * previewScale}px`,
-          rowGap: '0',
+          rowGap: `${rowGap * previewScale}px`,
           width: 'fit-content',
           margin: '0 auto',
           border: '1px solid #d1d5db',
@@ -183,6 +196,7 @@ export default function LabelsPage() {
               display: 'flex',
               flexDirection: 'row',
               alignItems: 'center',
+              justifyContent: 'center',
               boxSizing: 'border-box',
               padding: `${1 * previewScale}px`,
               gap: `${1.5 * previewScale}px`,

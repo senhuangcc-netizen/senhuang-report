@@ -16,6 +16,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     UPDATE xray_records SET
       item_type        = ${body.itemType},
       item_type_custom = ${body.itemTypeCustom || null},
+      angle            = ${body.angle || null},
+      angle_custom     = ${body.angleCustom || null},
       main_photos      = ${JSON.stringify(body.mainPhotos || [])},
       xray_photos      = ${JSON.stringify(body.xrayPhotos || [])},
       operator         = ${body.operator || null},

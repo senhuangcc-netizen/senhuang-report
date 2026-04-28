@@ -65,10 +65,13 @@ export async function ensureSchema() {
       xray_code TEXT NOT NULL,
       item_type TEXT NOT NULL,
       item_type_custom TEXT,
+      angle TEXT,
+      angle_custom TEXT,
       main_photos TEXT DEFAULT '[]',
       xray_photos TEXT DEFAULT '[]',
       operator TEXT,
       note TEXT,
+      doc_url TEXT,
       created_at TIMESTAMP DEFAULT NOW(),
       updated_at TIMESTAMP DEFAULT NOW()
     )
@@ -102,6 +105,10 @@ export async function ensureSchema() {
       updated_at TIMESTAMP DEFAULT NOW()
     )
   `
+  // migration: add columns that may not exist in older DB instances
+  await sql`ALTER TABLE xray_records ADD COLUMN IF NOT EXISTS angle TEXT`
+  await sql`ALTER TABLE xray_records ADD COLUMN IF NOT EXISTS angle_custom TEXT`
+  await sql`ALTER TABLE xray_records ADD COLUMN IF NOT EXISTS doc_url TEXT`
   schemaReady = true
 }
 

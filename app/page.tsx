@@ -8,6 +8,8 @@ import { CASE_STAGES } from '@/lib/formData'
 interface Intake {
   id: number
   customer_name: string
+  folder_name?: string
+  letter?: string
   item_code: string
   building_type: string
   appraisal_result: string
@@ -23,6 +25,27 @@ interface Intake {
   size?: string
   weight?: string
   photos?: string
+}
+
+interface XrayRecord {
+  id: number
+  customer_name: string
+  xray_code: string
+  item_type: string
+  item_type_custom: string | null
+  angle: string | null
+  created_at: string
+  doc_url: string | null
+}
+
+function parseCompletedStages(cs: string | null | undefined): string[] {
+  if (!cs) return []
+  try {
+    const parsed = JSON.parse(cs)
+    return Array.isArray(parsed) ? parsed : [cs]
+  } catch {
+    return cs ? [cs] : []
+  }
 }
 
 const BUILDING_TYPES = ['古玉器', '古銅器', '瓷器', '粉質佛牌', '金屬佛牌'] as const
@@ -41,6 +64,7 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
 export default function HomePage() {
   const router = useRouter()
   const [intakes, setIntakes] = useState<Intake[]>([])
+  const [xrays,   setXrays]   = useState<XrayRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [generating, setGenerating] = useState<number | null>(null)
@@ -49,13 +73,16 @@ export default function HomePage() {
   const [openItems, setOpenItems] = useState<Set<number>>(new Set())
 
   // 新建資料夾 Modal
-  const [newFolderOpen,    setNewFolderOpen]    = useState(false)
-  const [newFolderName,    setNewFolderName]    = useState('')
-  const [customerMenuOpen, setCustomerMenuOpen] = useState(false)
-  const [customerList,     setCustomerList]     = useState<string[]>([])
-  const [folderSearch,     setFolderSearch]     = useState('')
-  const [folderScanner,    setFolderScanner]    = useState(false)
-  const [searchScanner,    setSearchScanner]    = useState(false)
+  const [newFolderOpen,      setNewFolderOpen]      = useState(false)
+  const [newFolderName,      setNewFolderName]      = useState('')
+  const [customerMenuOpen,   setCustomerMenuOpen]   = useState(false)
+  const [customerList,       setCustomerList]       = useState<string[]>([])
+  const [searchScanner,      setSearchScanner]      = useState(false)
+  // 新增報告 Modal
+  const [addReportOpen,      setAddReportOpen]      = useState(false)
+  const [addReportCustomer,  setAddReportCustomer]  = useState('')
+  const [addReportSearch,    setAddReportSearch]    = useState('')
+  const [addReportScanner,   setAddReportScanner]   = useState(false)
 
   // 送檢單位管理
   const [inspectionUnits,  setInspectionUnits]  = useState<string[]>([])
@@ -64,44 +91,40 @@ export default function HomePage() {
   const [newUnitName,      setNewUnitName]       = useState('')
   // 快速儲存狀態
   const [quickSaved,       setQuickSaved]        = useState<number | null>(null)
+  // 進度取消確認：點第一下記錄，3秒內點第二下才真正取消
+  const [pendingRemove,    setPendingRemove]      = useState<{id: number; stage: string} | null>(null)
   // 尺寸/重量本地暫存（輸入中但未送出）
   const [quickEditMap,     setQuickEditMap]      = useState<Record<number, { size?: string; weight?: string }>>({})
 
   const openNewFolder = () => {
     setNewFolderName('')
-    setFolderSearch('')
     setNewFolderOpen(true)
+  }
+
+  const openAddReport = () => {
+    setAddReportCustomer('')
+    setAddReportSearch('')
+    setAddReportOpen(true)
     fetch('/api/customers')
       .then(r => r.json())
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .then((list: any[]) => setCustomerList(Array.isArray(list) ? list.map((c: any) => c.name) : []))
   }
 
-  const submitNewFolder = () => {
-    if (!newFolderName.trim()) return
-    setNewFolderOpen(false)
-    router.push(`/scan?customer=${encodeURIComponent(newFolderName.trim())}`)
-  }
-
-  const handleFolderScan = async (scanned: string) => {
-    setFolderScanner(false)
+  const handleAddReportScan = async (scanned: string) => {
+    setAddReportScanner(false)
     const suffix = scanned.slice(-3)
     try {
       const res = await fetch(`/api/intakes?barcode=${encodeURIComponent(scanned)}`)
       const data = await res.json()
       if (data?.id) {
-        setNewFolderOpen(false)
+        setAddReportOpen(false)
         router.push(`/new?edit=${data.id}`)
         return
       }
     } catch { /* noop */ }
-    // 查無結果：用後三碼作為客戶搜尋詞
-    setFolderSearch(suffix)
+    setAddReportSearch(suffix)
   }
-
-  const folderSuggestions = customerList.filter(n =>
-    !folderSearch || n.toLowerCase().includes(folderSearch.toLowerCase())
-  )
 
   const handleSearchScan = async (scanned: string) => {
     setSearchScanner(false)
@@ -151,10 +174,14 @@ export default function HomePage() {
 
   const execDelete = async () => {
     if (!deleteTarget || !confirmReady) return
-    // execDelete is now only used for folder deletion
     setDeleting(-1)
-    await fetch(`/api/intakes?customerName=${encodeURIComponent(deleteTarget.customerName)}`, { method: 'DELETE' })
-    setIntakes(prev => prev.filter(i => i.customer_name !== deleteTarget.customerName))
+    const name = deleteTarget.customerName
+    await Promise.all([
+      fetch(`/api/intakes?customerName=${encodeURIComponent(name)}`, { method: 'DELETE' }),
+      fetch(`/api/xray?customerName=${encodeURIComponent(name)}`, { method: 'DELETE' }),
+    ])
+    setIntakes(prev => prev.filter(i => i.customer_name !== name))
+    setXrays(prev => prev.filter(x => x.customer_name !== name))
     setDeleting(null)
     setDeleteTarget(null)
     setConfirmInput('')
@@ -166,15 +193,24 @@ export default function HomePage() {
   const [selectedMonth, setSelectedMonth] = useState(todayMonth)
 
   useEffect(() => {
+    const fetchXrays = () =>
+      fetch('/api/xray').then(r => r.json()).then(data => { if (Array.isArray(data)) setXrays(data) })
+
     fetch('/api/intakes')
       .then(r => r.json())
       .then(data => { setIntakes(Array.isArray(data) ? data : []); setLoading(false) })
+    fetchXrays()
     fetch('/api/inspection-units')
       .then(r => r.json())
       .then(list => { if (Array.isArray(list)) setInspectionUnits(list) })
+
+    // 從其他頁面返回時重新拉 xray（避免快取舊資料）
+    const onVisible = () => { if (document.visibilityState === 'visible') fetchXrays() }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
   }, [])
 
-  const quickPatch = async (id: number, field: Record<string, string | null>) => {
+  const quickPatch = async (id: number, field: Record<string, string | null | string[]>) => {
     await fetch(`/api/intakes/${id}/quick`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -184,12 +220,13 @@ export default function HomePage() {
     const val = Object.values(field)[0]
     setIntakes(prev => prev.map(i => {
       if (i.id !== id) return i
-      if (key === 'buildingType')    return { ...i, building_type:    val ?? '' }
-      if (key === 'appraisalResult') return { ...i, appraisal_result: val ?? '' }
-      if (key === 'inspectionUnit')  return { ...i, inspection_unit:  val ?? '' }
-      if (key === 'size')            return { ...i, size:             val ?? '' }
-      if (key === 'weight')          return { ...i, weight:           val ?? '' }
-      if (key === 'caseStage')       return { ...i, case_stage:       val ?? '收件' }
+      if (key === 'buildingType')    return { ...i, building_type:    val as string ?? '' }
+      if (key === 'appraisalResult') return { ...i, appraisal_result: val as string ?? '' }
+      if (key === 'inspectionUnit')  return { ...i, inspection_unit:  val as string ?? '' }
+      if (key === 'size')            return { ...i, size:             val as string ?? '' }
+      if (key === 'weight')          return { ...i, weight:           val as string ?? '' }
+      if (key === 'caseStage')       return { ...i, case_stage:       val as string ?? '收件' }
+      if (key === 'completedStages') return { ...i, case_stage:       JSON.stringify(val as string[]) }
       return i
     }))
     // 清掉該欄位的暫存
@@ -238,14 +275,17 @@ export default function HomePage() {
   }, [intakes])
 
   const monthsWithData = useMemo(() => {
-    const ms = new Set(
-      intakes
-        .filter(i => (i.submission_date || i.created_at)?.startsWith(selectedYear))
-        .map(i => parseInt((i.submission_date || i.created_at)?.slice(5, 7) || '0'))
-        .filter(m => m > 0)
-    )
+    const ms = new Set<number>()
+    for (const i of intakes) {
+      const d = i.submission_date || i.created_at || ''
+      if (d.startsWith(selectedYear)) { const m = parseInt(d.slice(5, 7)); if (m > 0) ms.add(m) }
+    }
+    for (const x of xrays) {
+      const d = x.created_at || ''
+      if (d.startsWith(selectedYear)) { const m = parseInt(d.slice(5, 7)); if (m > 0) ms.add(m) }
+    }
     return ms
-  }, [intakes, selectedYear])
+  }, [intakes, xrays, selectedYear])
 
   const filtered = useMemo(() => {
     const ym = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}`
@@ -260,16 +300,39 @@ export default function HomePage() {
     })
   }, [intakes, selectedYear, selectedMonth, search])
 
-  // 依客戶名稱分組
+  // 本月 xray（篩月份 + 搜尋）
+  const filteredXrays = useMemo(() => {
+    const ym = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}`
+    return xrays.filter(x => {
+      if (!x.created_at?.startsWith(ym)) return false
+      if (!search) return true
+      const s = search.toLowerCase()
+      return x.customer_name?.toLowerCase().includes(s) || x.xray_code?.toLowerCase().includes(s)
+    })
+  }, [xrays, selectedYear, selectedMonth, search])
+
+  // 依客戶名稱分組（intake + xray 合併）
   const customerGroups = useMemo(() => {
-    const map = new Map<string, Intake[]>()
+    const intakeMap = new Map<string, Intake[]>()
     for (const i of filtered) {
       const key = i.customer_name || '（未填客戶）'
-      if (!map.has(key)) map.set(key, [])
-      map.get(key)!.push(i)
+      if (!intakeMap.has(key)) intakeMap.set(key, [])
+      intakeMap.get(key)!.push(i)
     }
-    return Array.from(map.entries())
-  }, [filtered])
+    const xrayMap = new Map<string, XrayRecord[]>()
+    for (const x of filteredXrays) {
+      const key = x.customer_name || '（未填客戶）'
+      if (!xrayMap.has(key)) xrayMap.set(key, [])
+      xrayMap.get(key)!.push(x)
+    }
+    // 合併所有客戶 key
+    const allKeys = new Set([...intakeMap.keys(), ...xrayMap.keys()])
+    return Array.from(allKeys).map(k => ({
+      customerName: k,
+      intakes: intakeMap.get(k) ?? [],
+      xrays: xrayMap.get(k) ?? [],
+    }))
+  }, [filtered, filteredXrays])
 
   const generateReport = async (intake: Intake) => {
     setGenerating(intake.id)
@@ -296,83 +359,108 @@ export default function HomePage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-5 space-y-3">
             <h2 className="font-bold text-base text-gray-900">新建客戶資料夾</h2>
-
-            {/* 搜尋現有客戶 */}
-            {customerList.length > 0 && (
-              <div>
-                <p className="text-xs text-gray-600 mb-1.5">從現有客戶選擇</p>
-                <div className="flex gap-2">
-                  <input
-                    type="search"
-                    value={folderSearch}
-                    onChange={e => setFolderSearch(e.target.value)}
-                    placeholder="搜尋客戶姓名…"
-                    autoFocus
-                    className="flex-1 border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-amber-500"
-                  />
-                  <button
-                    onClick={() => setFolderScanner(true)}
-                    className="px-3 py-2 border border-amber-300 text-amber-700 rounded-xl text-sm font-medium hover:bg-amber-50 shrink-0"
-                    title="掃描條碼查詢客戶"
-                  >掃描</button>
-                </div>
-                {folderSuggestions.length > 0 && (
-                  <div className="mt-1.5 max-h-44 overflow-y-auto border border-gray-200 rounded-xl divide-y divide-gray-50">
-                    {folderSuggestions.map(n => (
-                      <button
-                        key={n}
-                        onClick={() => { setNewFolderName(n); setFolderSearch('') }}
-                        className={`w-full text-left px-3 py-2.5 text-sm transition-colors ${
-                          newFolderName === n
-                            ? 'bg-amber-50 text-amber-800 font-semibold'
-                            : 'text-gray-800 hover:bg-gray-50'
-                        }`}
-                      >
-                        {n}
-                        {newFolderName === n && <span className="ml-2 text-amber-600 text-xs">✓ 已選</span>}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* 分隔線 */}
-            <div className="flex items-center gap-2">
-              <div className="flex-1 h-px bg-gray-200" />
-              <span className="text-xs text-gray-500">或輸入新客戶姓名</span>
-              <div className="flex-1 h-px bg-gray-200" />
+            <div>
+              <label className="block text-xs text-gray-600 mb-1.5">輸入新客戶姓名</label>
+              <input
+                type="text"
+                value={newFolderName}
+                onChange={e => setNewFolderName(e.target.value)}
+                placeholder="客戶姓名"
+                autoFocus
+                className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-amber-500"
+              />
             </div>
-
-            {/* 手動輸入 / 已選顯示 */}
-            <input
-              type="text"
-              value={newFolderName}
-              onChange={e => setNewFolderName(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && submitNewFolder()}
-              placeholder="輸入客戶姓名"
-              className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-amber-500"
-            />
-            <p className="text-xs text-gray-600">建立後進入掃描頁，可批次掃描多件條碼</p>
-
-            <div className="flex gap-2 pt-1">
+            <p className="text-xs text-gray-500">建立後選擇建檔類型進入掃描頁</p>
+            <div className="grid grid-cols-2 gap-2">
               <button
-                onClick={() => setNewFolderOpen(false)}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-600 text-sm rounded-xl hover:bg-gray-50"
-              >取消</button>
-              <button
-                onClick={submitNewFolder}
+                onClick={() => { if (newFolderName.trim()) { setNewFolderOpen(false); router.push(`/xray/new?customer=${encodeURIComponent(newFolderName.trim())}`) } }}
                 disabled={!newFolderName.trim()}
-                className="flex-1 px-4 py-2 bg-amber-600 text-white text-sm rounded-xl font-medium hover:bg-amber-700 disabled:opacity-40"
-              >建立 → 掃描</button>
+                className="py-2.5 border border-purple-300 text-purple-700 text-sm rounded-xl font-medium hover:bg-purple-50 disabled:opacity-40"
+              >X光照建檔</button>
+              <button
+                onClick={() => { if (newFolderName.trim()) { setNewFolderOpen(false); router.push(`/scan?customer=${encodeURIComponent(newFolderName.trim())}`) } }}
+                disabled={!newFolderName.trim()}
+                className="py-2.5 bg-amber-600 text-white text-sm rounded-xl font-medium hover:bg-amber-700 disabled:opacity-40"
+              >鑑定報告</button>
             </div>
+            <button
+              onClick={() => setNewFolderOpen(false)}
+              className="w-full px-4 py-2 border border-gray-300 text-gray-600 text-sm rounded-xl hover:bg-gray-50"
+            >取消</button>
           </div>
         </div>
       )}
 
-      {/* 資料夾搜尋掃描器 */}
-      {folderScanner && (
-        <BarcodeScanner onScan={handleFolderScan} onClose={() => setFolderScanner(false)} keepOpen={false} />
+      {/* 新增報告 Modal */}
+      {addReportOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-5 space-y-3">
+            <h2 className="font-bold text-base text-gray-900">新增報告</h2>
+            <div>
+              <p className="text-xs text-gray-600 mb-1.5">選擇現有客戶</p>
+              <div className="flex gap-2">
+                <input
+                  type="search"
+                  value={addReportSearch}
+                  onChange={e => setAddReportSearch(e.target.value)}
+                  placeholder="搜尋客戶姓名…"
+                  autoFocus
+                  className="flex-1 border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-amber-500"
+                />
+                <button
+                  onClick={() => setAddReportScanner(true)}
+                  className="px-3 py-2 border border-amber-300 text-amber-700 rounded-xl text-sm font-medium hover:bg-amber-50 shrink-0"
+                >掃描</button>
+              </div>
+              {(() => {
+                const suggestions = customerList.filter(n =>
+                  !addReportSearch || n.toLowerCase().includes(addReportSearch.toLowerCase())
+                )
+                return suggestions.length > 0 ? (
+                  <div className="mt-1.5 max-h-44 overflow-y-auto border border-gray-200 rounded-xl divide-y divide-gray-50">
+                    {suggestions.map(n => (
+                      <button
+                        key={n}
+                        onClick={() => { setAddReportCustomer(n); setAddReportSearch('') }}
+                        className={`w-full text-left px-3 py-2.5 text-sm transition-colors ${
+                          addReportCustomer === n ? 'bg-amber-50 text-amber-800 font-semibold' : 'text-gray-800 hover:bg-gray-50'
+                        }`}
+                      >
+                        {n}
+                        {addReportCustomer === n && <span className="ml-2 text-amber-600 text-xs">✓ 已選</span>}
+                      </button>
+                    ))}
+                  </div>
+                ) : null
+              })()}
+              {addReportCustomer && !addReportSearch && (
+                <p className="text-xs text-amber-700 mt-1.5 font-medium">已選：{addReportCustomer}</p>
+              )}
+            </div>
+            <p className="text-xs text-gray-500">選擇建檔類型</p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => { if (addReportCustomer) { setAddReportOpen(false); router.push(`/xray/new?customer=${encodeURIComponent(addReportCustomer)}`) } }}
+                disabled={!addReportCustomer}
+                className="py-2.5 border border-purple-300 text-purple-700 text-sm rounded-xl font-medium hover:bg-purple-50 disabled:opacity-40"
+              >X光照建檔</button>
+              <button
+                onClick={() => { if (addReportCustomer) { setAddReportOpen(false); router.push(`/scan?customer=${encodeURIComponent(addReportCustomer)}`) } }}
+                disabled={!addReportCustomer}
+                className="py-2.5 bg-amber-600 text-white text-sm rounded-xl font-medium hover:bg-amber-700 disabled:opacity-40"
+              >鑑定報告</button>
+            </div>
+            <button
+              onClick={() => setAddReportOpen(false)}
+              className="w-full px-4 py-2 border border-gray-300 text-gray-600 text-sm rounded-xl hover:bg-gray-50"
+            >取消</button>
+          </div>
+        </div>
+      )}
+
+      {/* 新增報告掃描器 */}
+      {addReportScanner && (
+        <BarcodeScanner onScan={handleAddReportScan} onClose={() => setAddReportScanner(false)} keepOpen={false} />
       )}
       {/* 主搜尋掃描器 */}
       {searchScanner && (
@@ -461,9 +549,12 @@ export default function HomePage() {
           >
             新資料夾
           </button>
-          <Link href="/new" className="flex-1 py-2.5 bg-amber-600 text-white text-sm rounded-xl font-semibold hover:bg-amber-700 text-center">
+          <button
+            onClick={openAddReport}
+            className="flex-1 py-2.5 bg-amber-600 text-white text-sm rounded-xl font-semibold hover:bg-amber-700"
+          >
             新增報告
-          </Link>
+          </button>
         </div>
       </header>
 
@@ -521,13 +612,13 @@ export default function HomePage() {
         {/* 筆數 */}
         {!loading && (
           <p className="text-xs text-gray-600">
-            {selectedYear} 年 {selectedMonth} 月 · {customerGroups.length} 位客戶 · 共 {filtered.length} 筆
+            {selectedYear} 年 {selectedMonth} 月 · {customerGroups.length} 位客戶 · 建單 {filtered.length} 筆 · X光 {filteredXrays.length} 筆
           </p>
         )}
 
         {loading && <div className="text-center text-gray-400 py-12">載入中...</div>}
 
-        {!loading && filtered.length === 0 && (
+        {!loading && filtered.length === 0 && filteredXrays.length === 0 && (
           <div className="text-center text-gray-400 py-12">
             <div className="text-4xl mb-3">📋</div>
             <p>{selectedYear} 年 {selectedMonth} 月 尚無建單</p>
@@ -537,13 +628,16 @@ export default function HomePage() {
 
         {/* 客戶資料夾分組（兩層折疊） */}
         <div className="space-y-2">
-          {customerGroups.map(([cname, items]) => {
+          {customerGroups.map(({ customerName: cname, intakes: items, xrays: cxrays }) => {
             const folderOpen = openFolders.has(cname)
             const submittedCount = items.filter(i => i.status === 'submitted').length
             const completedCount = items.filter(i => i.status === 'completed').length
             // 資料夾進度：全部 items 進度相同才顯示
-            const stages = items.map(i => i.case_stage || '收件')
-            const folderStage = stages.every(s => s === stages[0]) ? stages[0] : null
+            const folderStage = (() => {
+              const all = items.flatMap(it => parseCompletedStages(it.case_stage))
+              return all.length > 0 ? all[all.length - 1] : null
+            })()
+            const folderLetter = items[0]?.letter
             return (
               <div key={cname} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
 
@@ -553,8 +647,12 @@ export default function HomePage() {
                   onClick={() => toggleFolder(cname)}
                 >
                   <span className="text-base">{folderOpen ? '📂' : '📁'}</span>
-                  <span className="font-semibold text-gray-900">{cname}</span>
-                  <span className="text-xs text-gray-600 ml-1">{items.length} 件</span>
+                  <span className="font-semibold text-gray-900">
+                    {cname}{folderLetter ? <span className="text-amber-600">-{folderLetter}</span> : null}
+                  </span>
+                  <span className="text-xs text-gray-600 ml-1">
+                    {items.length} 件{cxrays.length > 0 ? ` · ${cxrays.length} X光` : ''}
+                  </span>
                   {folderStage && (
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${
                       folderStage === '完成' ? 'bg-green-50 text-green-600' :
@@ -592,11 +690,16 @@ export default function HomePage() {
                             <span className="text-gray-300 text-xs w-3 shrink-0">{itemOpen ? '▾' : '▸'}</span>
                             <span className="font-mono text-xs text-gray-700 shrink-0">{intake.item_code}</span>
                             <span className="text-sm text-gray-800 truncate flex-1">{itemName}</span>
-                            {intake.case_stage && intake.case_stage !== '收件' && (
-                              <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 font-medium ${
-                                intake.case_stage === '完成' ? 'bg-green-50 text-green-600' : 'bg-amber-50 text-amber-700'
-                              }`}>{intake.case_stage}</span>
-                            )}
+                            {(() => {
+                              const cs = parseCompletedStages(intake.case_stage)
+                              const lastStage = [...cs].reverse().find(s => s !== '收件')
+                              if (!lastStage) return null
+                              return (
+                                <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 font-medium ${
+                                  lastStage === '完成' ? 'bg-green-50 text-green-600' : 'bg-amber-50 text-amber-700'
+                                }`}>{lastStage}</span>
+                              )
+                            })()}
                             <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${status.color}`}>{status.label}</span>
                           </div>
 
@@ -645,14 +748,46 @@ export default function HomePage() {
                                           </select>
                                         </div>
 
-                                        {/* 進度 */}
-                                        <select
-                                          value={intake.case_stage || '收件'}
-                                          onChange={e => quickPatch(intake.id, { caseStage: e.target.value })}
-                                          className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white text-gray-700 focus:outline-none focus:border-amber-400"
-                                        >
-                                          {CASE_STAGES.map(s => <option key={s} value={s}>{s}</option>)}
-                                        </select>
+                                        {/* 進度 toggle */}
+                                        {(() => {
+                                          const completedStages = parseCompletedStages(intake.case_stage)
+                                          return (
+                                            <div className="flex flex-wrap gap-1">
+                                              {CASE_STAGES.map(stage => {
+                                                const done = completedStages.includes(stage)
+                                                const isPR = pendingRemove?.id === intake.id && pendingRemove?.stage === stage
+                                                return (
+                                                  <button
+                                                    key={stage}
+                                                    type="button"
+                                                    onClick={() => {
+                                                      if (!done) {
+                                                        quickPatch(intake.id, { completedStages: [...completedStages, stage] })
+                                                      } else if (isPR) {
+                                                        quickPatch(intake.id, { completedStages: completedStages.filter(s => s !== stage) })
+                                                        setPendingRemove(null)
+                                                      } else {
+                                                        setPendingRemove({ id: intake.id, stage })
+                                                        setTimeout(() => setPendingRemove(prev =>
+                                                          prev?.id === intake.id && prev?.stage === stage ? null : prev
+                                                        ), 3000)
+                                                      }
+                                                    }}
+                                                    className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${
+                                                      isPR
+                                                        ? 'bg-red-50 text-red-600 border-red-300'
+                                                        : done
+                                                        ? 'bg-amber-600 text-white border-amber-600 hover:bg-amber-700'
+                                                        : 'bg-white text-gray-400 border-gray-200 hover:border-amber-300 hover:text-amber-600'
+                                                    }`}
+                                                  >
+                                                    {isPR ? `✕ 確認取消？` : done ? `✓ ${stage}` : stage}
+                                                  </button>
+                                                )
+                                              })}
+                                            </div>
+                                          )
+                                        })()}
 
                                         {/* 送檢單位：預設只顯示已選取標籤，點按才展開選擇器 */}
                                         <div className="flex items-center gap-1 flex-wrap">
@@ -735,22 +870,6 @@ export default function HomePage() {
                                   </div>
                                 )
                               })()}
-                              {/* 拍照子進度 */}
-                              {intake.case_stage === '拍照' && (() => {
-                                let ps: string[] = []
-                                try { ps = JSON.parse(intake.photo_stages || '[]') } catch { /* noop */ }
-                                return (
-                                  <div className="flex gap-2">
-                                    {(['主體照', '顯微照', '360'] as const).map(s => (
-                                      <span key={s} className={`text-xs px-2 py-0.5 rounded-lg border ${
-                                        ps.includes(s) ? 'bg-amber-50 text-amber-700 border-amber-200' : 'text-gray-300 border-gray-100'
-                                      }`}>
-                                        {ps.includes(s) ? '✓ ' : ''}{s}
-                                      </span>
-                                    ))}
-                                  </div>
-                                )
-                              })()}
                               <div className="flex gap-1.5 flex-wrap items-center">
                                 <Link
                                   href={`/new?edit=${intake.id}`}
@@ -800,6 +919,24 @@ export default function HomePage() {
                         </div>
                       )
                     })}
+                    {/* X 光記錄 */}
+                    {cxrays.map(xr => (
+                      <Link
+                        key={`xray-${xr.id}`}
+                        href={`/xray/${xr.id}`}
+                        className="pl-8 pr-4 py-2.5 flex items-center gap-3 hover:bg-purple-50 transition-colors"
+                      >
+                        <span className="text-xs text-purple-400 w-3 shrink-0">🔬</span>
+                        <span className="font-mono text-xs text-purple-700 shrink-0">{xr.xray_code}</span>
+                        <span className="text-sm text-gray-700 truncate flex-1">
+                          {xr.item_type === '其他' && xr.item_type_custom ? xr.item_type_custom : xr.item_type}
+                          {xr.angle ? <span className="text-gray-400 ml-1">· {xr.angle}</span> : null}
+                        </span>
+                        <span className="text-xs bg-purple-50 text-purple-600 border border-purple-100 px-2 py-0.5 rounded-full shrink-0">X光</span>
+                        {xr.doc_url && <span className="text-xs text-green-600 shrink-0">✓ 報告</span>}
+                      </Link>
+                    ))}
+
                     {/* 刪除整個資料夾（放在展開區底部，避免誤按） */}
                     <div className="px-4 py-2.5 flex justify-end border-t border-gray-50">
                       <button

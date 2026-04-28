@@ -7,6 +7,12 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     '/api/generate': ['./templates/**/*'],
   },
+  experimental: {
+    staleTimes: {
+      static: 0,   // 禁用 client router cache，確保每次導回主頁都重新取資料
+      dynamic: 0,
+    },
+  },
 };
 
 export default nextConfig;

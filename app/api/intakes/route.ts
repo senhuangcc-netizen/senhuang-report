@@ -19,10 +19,13 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(rows[0] || null)
   }
   const { rows } = await sql`
-    SELECT id, customer_name, item_code, building_type, appraisal_result,
-           genuine_preset, status, operator, submission_date, report_path,
-           case_stage, photo_stages, inspection_unit, size, weight, photos, created_at
-    FROM intakes ORDER BY created_at DESC
+    SELECT i.id, i.customer_name, i.folder_name, i.item_code, i.building_type, i.appraisal_result,
+           i.genuine_preset, i.status, i.operator, i.submission_date, i.report_path,
+           i.case_stage, i.photo_stages, i.inspection_unit, i.size, i.weight, i.photos, i.created_at,
+           fl.letter
+    FROM intakes i
+    LEFT JOIN folder_letters fl ON fl.folder_name = i.folder_name
+    ORDER BY i.created_at DESC
   `
   return NextResponse.json(rows)
 }
