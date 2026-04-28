@@ -193,6 +193,119 @@ async function syncToSheet(
   }
 }
 
+// ── 試算表分組整理 ────────────────────────────────────────────────
+
+function parseYM(val: unknown): { year: string; month: number } {
+  if (!val) return { year: '未知', month: 0 }
+  const d = String(val).trim()
+  // ISO 字串：2026-04-28 or 2026-04-28T...
+  if (d.length >= 7 && d[4] === '-') {
+    return { year: d.slice(0, 4), month: parseInt(d.slice(5, 7)) || 0 }
+  }
+  // 嘗試 Date 解析
+  const dt = new Date(d)
+  if (!isNaN(dt.getTime())) return { year: String(dt.getFullYear()), month: dt.getMonth() + 1 }
+  return { year: '未知', month: 0 }
+}
+
+async function reorganizeSheet(sheetTitle: string, nameColIdx: number, dateColIdx: number) {
+  const sheetId = await ensureSheet(sheetTitle)
+
+  // 讀取全部資料
+  const raw = await sheetReq('GET', `/values/${encodeURIComponent(sheetTitle)}!A:Z`)
+  const values: string[][] = raw.values ?? []
+  if (values.length <= 1) return
+
+  const header = values[0]
+  const ncols = header.length
+
+  // 去除舊群組標題行，只保留真正的資料行
+  const dataRows = values.slice(1).filter(r => {
+    const a = String(r[0] ?? '')
+    return a !== '' && !a.startsWith('▶') && !a.startsWith('　')
+  })
+  if (dataRows.length === 0) return
+
+  // 排序：年新→舊，月新→舊，客戶名 A→Z
+  const enriched = dataRows.map(r => ({ row: r, ...parseYM(r[dateColIdx]) }))
+  enriched.sort((a, b) => {
+    if (b.year !== a.year) return b.year.localeCompare(a.year)
+    if (b.month !== a.month) return b.month - a.month
+    return String(a.row[nameColIdx] ?? '').localeCompare(String(b.row[nameColIdx] ?? ''), 'zh-TW')
+  })
+
+  // 加入年/月標題行
+  const output: string[][] = [header]
+  const yearRowNums: number[] = []
+  const monthRowNums: number[] = []
+  let lastYear: string | null = null
+  let lastMonth: number | null = null
+
+  for (const { row, year, month } of enriched) {
+    if (year !== lastYear) {
+      yearRowNums.push(output.length + 1)
+      output.push([`▶ ${year} 年`, ...Array(ncols - 1).fill('')])
+      lastYear = year; lastMonth = null
+    }
+    if (month !== lastMonth) {
+      const m = month > 0 ? String(month).padStart(2, '0') : '??'
+      monthRowNums.push(output.length + 1)
+      output.push([`　　${year}-${m}`, ...Array(ncols - 1).fill('')])
+      lastMonth = month
+    }
+    const padded = [...row]
+    while (padded.length < ncols) padded.push('')
+    output.push(padded)
+  }
+
+  // 清空後寫回
+  await sheetReq('POST', `/values/${encodeURIComponent(sheetTitle)}!A:Z:clear`, {})
+  await sheetReq('PUT', `/values/${encodeURIComponent(sheetTitle)}!A1?valueInputOption=RAW`, { values: output })
+
+  // 格式設定
+  const requests = [
+    // 全部重設白底
+    { repeatCell: {
+      range: { sheetId, startRowIndex: 0, endRowIndex: output.length, startColumnIndex: 0, endColumnIndex: ncols },
+      cell: { userEnteredFormat: { backgroundColor: { red:1, green:1, blue:1 }, textFormat: { bold:false, foregroundColor:{red:0,green:0,blue:0} } } },
+      fields: 'userEnteredFormat(backgroundColor,textFormat)',
+    }},
+    // 欄位表頭：深灰底白字
+    { repeatCell: {
+      range: { sheetId, startRowIndex: 0, endRowIndex: 1, startColumnIndex: 0, endColumnIndex: ncols },
+      cell: { userEnteredFormat: { backgroundColor: { red:0.24, green:0.24, blue:0.24 }, textFormat: { bold:true, foregroundColor:{red:1,green:1,blue:1} } } },
+      fields: 'userEnteredFormat(backgroundColor,textFormat)',
+    }},
+    // 凍結第一行
+    { updateSheetProperties: {
+      properties: { sheetId, gridProperties: { frozenRowCount: 1 } },
+      fields: 'gridProperties.frozenRowCount',
+    }},
+    // 年份標題：琥珀色
+    ...yearRowNums.map(n => ({ repeatCell: {
+      range: { sheetId, startRowIndex: n-1, endRowIndex: n, startColumnIndex: 0, endColumnIndex: ncols },
+      cell: { userEnteredFormat: { backgroundColor: { red:0.718, green:0.475, blue:0.122 }, textFormat: { bold:true, foregroundColor:{red:1,green:1,blue:1}, fontSize:11 } } },
+      fields: 'userEnteredFormat(backgroundColor,textFormat)',
+    }})),
+    // 月份標題：淡黃
+    ...monthRowNums.map(n => ({ repeatCell: {
+      range: { sheetId, startRowIndex: n-1, endRowIndex: n, startColumnIndex: 0, endColumnIndex: ncols },
+      cell: { userEnteredFormat: { backgroundColor: { red:0.996, green:0.949, blue:0.773 }, textFormat: { bold:true, foregroundColor:{red:0.471,green:0.208,blue:0} } } },
+      fields: 'userEnteredFormat(backgroundColor,textFormat)',
+    }})),
+  ]
+  await sheetReq('POST', '/:batchUpdate', { requests })
+}
+
+export async function reorganizeAllSheets() {
+  if (!process.env.GOOGLE_SERVICE_ACCOUNT_KEY || !process.env.GOOGLE_SHEET_ID) return
+  const names = await getSheetNames()
+  const reportTab = names[0] ?? '報告總表'
+  await reorganizeSheet(reportTab,  1, 22)  // B=客戶名稱, W=建立時間
+  await reorganizeSheet('X光總表',   1, 10)  // B=客戶名稱, K=建立時間
+  await reorganizeSheet('客戶總表',  1, 9)   // B=姓名,     J=建立時間
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function syncIntake(intake: Record<string, any>) {
   if (!process.env.GOOGLE_SERVICE_ACCOUNT_KEY || !process.env.GOOGLE_SHEET_ID) {
