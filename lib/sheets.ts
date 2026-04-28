@@ -234,64 +234,135 @@ async function reorganizeSheet(sheetTitle: string, nameColIdx: number, dateColId
     return String(a.row[nameColIdx] ?? '').localeCompare(String(b.row[nameColIdx] ?? ''), 'zh-TW')
   })
 
-  // 加入年/月標題行
+  // 建構輸出行，並記錄三層分組範圍（0-based row index）
+  type GR = { startIndex: number; endIndex: number }
   const output: string[][] = [header]
+  const yearGroups: GR[] = []
+  const monthGroups: GR[] = []
+  const customerGroups: GR[] = []
   const yearRowNums: number[] = []
   const monthRowNums: number[] = []
+  const customerRowNums: number[] = []
+
   let lastYear: string | null = null
   let lastMonth: number | null = null
+  let lastCustomer: string | null = null
+  let yearStart = -1, monthStart = -1, customerStart = -1
+
+  const closeCustomer = () => {
+    if (customerStart !== -1 && output.length > customerStart)
+      customerGroups.push({ startIndex: customerStart, endIndex: output.length })
+    customerStart = -1; lastCustomer = null
+  }
+  const closeMonth = () => {
+    if (monthStart !== -1 && output.length > monthStart)
+      monthGroups.push({ startIndex: monthStart, endIndex: output.length })
+    monthStart = -1; lastMonth = null
+  }
+  const closeYear = () => {
+    if (yearStart !== -1 && output.length > yearStart)
+      yearGroups.push({ startIndex: yearStart, endIndex: output.length })
+    yearStart = -1; lastYear = null
+  }
 
   for (const { row, year, month } of enriched) {
+    const cname = String(row[nameColIdx] ?? '')
+
     if (year !== lastYear) {
+      closeCustomer(); closeMonth(); closeYear()
       yearRowNums.push(output.length + 1)
       output.push([`▶ ${year} 年`, ...Array(ncols - 1).fill('')])
-      lastYear = year; lastMonth = null
+      yearStart = output.length; lastYear = year
     }
     if (month !== lastMonth) {
+      closeCustomer(); closeMonth()
       const m = month > 0 ? String(month).padStart(2, '0') : '??'
       monthRowNums.push(output.length + 1)
       output.push([`　　${year}-${m}`, ...Array(ncols - 1).fill('')])
-      lastMonth = month
+      monthStart = output.length; lastMonth = month
     }
+    if (cname !== lastCustomer) {
+      closeCustomer()
+      customerRowNums.push(output.length + 1)
+      output.push([`　　　　${cname}`, ...Array(ncols - 1).fill('')])
+      customerStart = output.length; lastCustomer = cname
+    }
+
     const padded = [...row]
     while (padded.length < ncols) padded.push('')
     output.push(padded)
+  }
+  closeCustomer(); closeMonth(); closeYear()
+
+  // 取得現有 row groups，先刪除避免堆疊
+  const token = await getServiceAccountToken()
+  const sid = process.env.GOOGLE_SHEET_ID!
+  const metaRes = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${sid}?fields=sheets(properties.sheetId,rowGroups)`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  )
+  const meta = await metaRes.json()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const existing: Array<{ range: { startIndex: number; endIndex: number } }> =
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (meta.sheets ?? []).find((s: any) => s.properties?.sheetId === sheetId)?.rowGroups ?? []
+
+  if (existing.length > 0) {
+    await sheetReq('POST', '/:batchUpdate', {
+      requests: existing.map(g => ({
+        deleteDimensionGroup: {
+          range: { sheetId, dimension: 'ROWS', startIndex: g.range.startIndex, endIndex: g.range.endIndex },
+        }
+      }))
+    })
   }
 
   // 清空後寫回
   await sheetReq('POST', `/values/${encodeURIComponent(sheetTitle)}!A:Z:clear`, {})
   await sheetReq('PUT', `/values/${encodeURIComponent(sheetTitle)}!A1?valueInputOption=RAW`, { values: output })
 
-  // 格式設定
-  const requests = [
-    // 全部重設白底
+  // 格式設定 + 新增三層群組（由外到內：年→月→客戶，讓 Sheets 自動分配 depth）
+  const requests: object[] = [
     { repeatCell: {
       range: { sheetId, startRowIndex: 0, endRowIndex: output.length, startColumnIndex: 0, endColumnIndex: ncols },
       cell: { userEnteredFormat: { backgroundColor: { red:1, green:1, blue:1 }, textFormat: { bold:false, foregroundColor:{red:0,green:0,blue:0} } } },
       fields: 'userEnteredFormat(backgroundColor,textFormat)',
     }},
-    // 欄位表頭：深灰底白字
     { repeatCell: {
       range: { sheetId, startRowIndex: 0, endRowIndex: 1, startColumnIndex: 0, endColumnIndex: ncols },
       cell: { userEnteredFormat: { backgroundColor: { red:0.24, green:0.24, blue:0.24 }, textFormat: { bold:true, foregroundColor:{red:1,green:1,blue:1} } } },
       fields: 'userEnteredFormat(backgroundColor,textFormat)',
     }},
-    // 凍結第一行
     { updateSheetProperties: {
       properties: { sheetId, gridProperties: { frozenRowCount: 1 } },
       fields: 'gridProperties.frozenRowCount',
     }},
-    // 年份標題：琥珀色
     ...yearRowNums.map(n => ({ repeatCell: {
       range: { sheetId, startRowIndex: n-1, endRowIndex: n, startColumnIndex: 0, endColumnIndex: ncols },
       cell: { userEnteredFormat: { backgroundColor: { red:0.718, green:0.475, blue:0.122 }, textFormat: { bold:true, foregroundColor:{red:1,green:1,blue:1}, fontSize:11 } } },
       fields: 'userEnteredFormat(backgroundColor,textFormat)',
     }})),
-    // 月份標題：淡黃
     ...monthRowNums.map(n => ({ repeatCell: {
       range: { sheetId, startRowIndex: n-1, endRowIndex: n, startColumnIndex: 0, endColumnIndex: ncols },
       cell: { userEnteredFormat: { backgroundColor: { red:0.996, green:0.949, blue:0.773 }, textFormat: { bold:true, foregroundColor:{red:0.471,green:0.208,blue:0} } } },
       fields: 'userEnteredFormat(backgroundColor,textFormat)',
+    }})),
+    ...customerRowNums.map(n => ({ repeatCell: {
+      range: { sheetId, startRowIndex: n-1, endRowIndex: n, startColumnIndex: 0, endColumnIndex: ncols },
+      cell: { userEnteredFormat: { backgroundColor: { red:0.878, green:0.929, blue:0.973 }, textFormat: { bold:true, foregroundColor:{red:0.1,green:0.3,blue:0.5} } } },
+      fields: 'userEnteredFormat(backgroundColor,textFormat)',
+    }})),
+    // 年群組（最外層，depth 0）
+    ...yearGroups.map(g => ({ addDimensionGroup: {
+      range: { sheetId, dimension: 'ROWS', startIndex: g.startIndex, endIndex: g.endIndex }
+    }})),
+    // 月群組（depth 1）
+    ...monthGroups.map(g => ({ addDimensionGroup: {
+      range: { sheetId, dimension: 'ROWS', startIndex: g.startIndex, endIndex: g.endIndex }
+    }})),
+    // 客戶群組（最內層，depth 2）
+    ...customerGroups.map(g => ({ addDimensionGroup: {
+      range: { sheetId, dimension: 'ROWS', startIndex: g.startIndex, endIndex: g.endIndex }
     }})),
   ]
   await sheetReq('POST', '/:batchUpdate', { requests })
