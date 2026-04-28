@@ -323,16 +323,18 @@ async function reorganizeSheet(sheetTitle: string, nameColIdx: number, dateColId
   await sheetReq('PUT', `/values/${encodeURIComponent(sheetTitle)}!A1?valueInputOption=RAW`, { values: output })
 
   // 格式設定 + 新增三層群組（由外到內：年→月→客戶，讓 Sheets 自動分配 depth）
+  // fields 只更新背景色與 textFormat 的子欄，不碰 fontFamily / fontSize，避免蓋掉使用者手動設定的字型
+  const TF = 'userEnteredFormat(backgroundColor,textFormat.bold,textFormat.foregroundColor)'
   const requests: object[] = [
     { repeatCell: {
       range: { sheetId, startRowIndex: 0, endRowIndex: output.length, startColumnIndex: 0, endColumnIndex: ncols },
       cell: { userEnteredFormat: { backgroundColor: { red:1, green:1, blue:1 }, textFormat: { bold:false, foregroundColor:{red:0,green:0,blue:0} } } },
-      fields: 'userEnteredFormat(backgroundColor,textFormat)',
+      fields: TF,
     }},
     { repeatCell: {
       range: { sheetId, startRowIndex: 0, endRowIndex: 1, startColumnIndex: 0, endColumnIndex: ncols },
       cell: { userEnteredFormat: { backgroundColor: { red:0.24, green:0.24, blue:0.24 }, textFormat: { bold:true, foregroundColor:{red:1,green:1,blue:1} } } },
-      fields: 'userEnteredFormat(backgroundColor,textFormat)',
+      fields: TF,
     }},
     { updateSheetProperties: {
       properties: { sheetId, gridProperties: { frozenRowCount: 1 } },
@@ -341,17 +343,17 @@ async function reorganizeSheet(sheetTitle: string, nameColIdx: number, dateColId
     ...yearRowNums.map(n => ({ repeatCell: {
       range: { sheetId, startRowIndex: n-1, endRowIndex: n, startColumnIndex: 0, endColumnIndex: ncols },
       cell: { userEnteredFormat: { backgroundColor: { red:0.718, green:0.475, blue:0.122 }, textFormat: { bold:true, foregroundColor:{red:1,green:1,blue:1}, fontSize:11 } } },
-      fields: 'userEnteredFormat(backgroundColor,textFormat)',
+      fields: 'userEnteredFormat(backgroundColor,textFormat.bold,textFormat.foregroundColor,textFormat.fontSize)',
     }})),
     ...monthRowNums.map(n => ({ repeatCell: {
       range: { sheetId, startRowIndex: n-1, endRowIndex: n, startColumnIndex: 0, endColumnIndex: ncols },
       cell: { userEnteredFormat: { backgroundColor: { red:0.996, green:0.949, blue:0.773 }, textFormat: { bold:true, foregroundColor:{red:0.471,green:0.208,blue:0} } } },
-      fields: 'userEnteredFormat(backgroundColor,textFormat)',
+      fields: TF,
     }})),
     ...customerRowNums.map(n => ({ repeatCell: {
       range: { sheetId, startRowIndex: n-1, endRowIndex: n, startColumnIndex: 0, endColumnIndex: ncols },
       cell: { userEnteredFormat: { backgroundColor: { red:0.878, green:0.929, blue:0.973 }, textFormat: { bold:true, foregroundColor:{red:0.1,green:0.3,blue:0.5} } } },
-      fields: 'userEnteredFormat(backgroundColor,textFormat)',
+      fields: TF,
     }})),
     // 年群組（最外層，depth 0）
     ...yearGroups.map(g => ({ addDimensionGroup: {
