@@ -652,7 +652,7 @@ export default function HomePage() {
                     {cname}{folderLetter ? <span className="text-amber-600">-{folderLetter}</span> : null}
                   </span>
                   <span className="text-xs text-gray-600 ml-1">
-                    {items.length} 件{cxrays.length > 0 ? ` · ${cxrays.length} X光` : ''}
+                    {[items.length > 0 && `${items.length} 件`, cxrays.length > 0 && `${cxrays.length} X光`].filter(Boolean).join(' · ')}
                   </span>
                   {folderStage && (
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${

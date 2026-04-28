@@ -3,6 +3,8 @@ import { readFile, writeFile, mkdir } from 'fs/promises'
 import path from 'path'
 import { sql, ensureSchema } from '@/lib/db'
 import { XRAY_DOCX_B64 } from '@/lib/xray_template'
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const sharp = require('sharp')
 
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(process.cwd(), 'uploads')
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -76,6 +78,18 @@ async function fetchBuf(url: string | null): Promise<Buffer> {
   } catch { return BLANK_PNG }
 }
 
+// 將圖片轉為 sRGB JPEG 並裁切為格子尺寸（554×642），解決色彩空間反綠問題
+async function normalizeForWord(buf: Buffer): Promise<Buffer> {
+  try {
+    return await sharp(buf)
+      .resize(554, 642, { fit: 'cover', position: 'centre' })
+      .jpeg({ quality: 92, chromaSubsampling: '4:4:4' })
+      .toBuffer()
+  } catch {
+    return buf
+  }
+}
+
 async function saveDocx(buf: Buffer, filename: string): Promise<string> {
   const date = new Date().toISOString().slice(0, 10).replace(/-/g, '')
   const rel  = `reports/${date}/${filename}`
@@ -97,7 +111,7 @@ export async function POST(
 
   const xrayPhotos: string[] = JSON.parse(rec.xray_photos || '[]')
   const xrayUrl = xrayPhotos[0] ?? null
-  const xrayBuf = await fetchBuf(xrayUrl)
+  const xrayBuf = await normalizeForWord(await fetchBuf(xrayUrl))
 
   const item_line  = buildCheckboxLine(ITEM_OPTIONS,  rec.item_type  || '', rec.item_type_custom)
   const angle_line = buildCheckboxLine(ANGLE_OPTIONS, rec.angle      || '', rec.angle_custom)
@@ -110,7 +124,7 @@ export async function POST(
     const imageModule = new ImageModule({
       centered: false,
       getImage: (key: string) => imgBufs[key] ?? BLANK_PNG,
-      getSize: () => [420, 480],
+      getSize: () => [554, 642],
     })
 
     const doc = new Docxtemplater(zip, {
