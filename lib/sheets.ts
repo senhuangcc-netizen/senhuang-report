@@ -250,7 +250,7 @@ function customerToRow(r: Record<string, any>): string[] {
 export async function syncCustomer(record: Record<string, any>) {
   if (!process.env.GOOGLE_SERVICE_ACCOUNT_KEY || !process.env.GOOGLE_SHEET_ID) return
   try {
-    await syncToSheet('客戶名單', CUSTOMER_HEADERS, String(record.id), customerToRow(record))
+    await syncToSheet('客戶總表', CUSTOMER_HEADERS, String(record.id), customerToRow(record))
   } catch (e) {
     console.error('[sheets] syncCustomer error:', e)
   }
