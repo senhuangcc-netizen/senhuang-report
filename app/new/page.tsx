@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { BUILDING_TYPES, BuildingType, APPRAISAL_RESULTS, GENUINE_PRESETS, CASE_STAGES } from '@/lib/formData'
+import { BUILDING_TYPES, BuildingType, APPRAISAL_RESULTS, GENUINE_PRESETS } from '@/lib/formData'
 import SearchableSelect from '@/components/SearchableSelect'
 import CategoryFields from '@/components/CategoryFields'
 import PhotoUpload, { PhotoItem } from '@/components/PhotoUpload'
@@ -104,16 +104,11 @@ export default function NewIntakePage() {
   const [genuinePreset, setGenuinePreset] = useState('')
 
   // 案件進度 + 送檢單位 + 拍照子進度
-  const [caseStage,       setCaseStage]       = useState('收件')
+
   const [inspectionUnit,  setInspectionUnit]  = useState('')
   const [inspectionUnits, setInspectionUnits] = useState<string[]>([])
   const [addingUnit,      setAddingUnit]      = useState(false)
   const [newUnitName,     setNewUnitName]     = useState('')
-  const [photoStages,    setPhotoStages]    = useState<string[]>([])
-
-  const togglePhotoStage = (s: string) =>
-    setPhotoStages(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])
-
   const addNewUnit = async () => {
     if (!newUnitName.trim()) return
     const name = newUnitName.trim()
@@ -271,9 +266,7 @@ export default function NewIntakePage() {
         } catch { /* noop */ }
         setXrfPdfUrl(data.xrf_pdf_url || '')
         setXrfChartUrl(data.xrf_chart_url || '')
-        setCaseStage(data.case_stage || '收件')
         setInspectionUnit(data.inspection_unit || '')
-        try { setPhotoStages(JSON.parse(data.photo_stages || '[]')) } catch { /* noop */ }
       })
   }, [])
 
@@ -337,9 +330,7 @@ export default function NewIntakePage() {
     xrfChartUrl,
     operator,
     status,
-    caseStage,
     inspectionUnit,
-    photoStages,
   })
 
   const lookupCard = async () => {
@@ -528,51 +519,6 @@ export default function NewIntakePage() {
       <form id="intake-form" onSubmit={handleSubmit} className="max-w-2xl mx-auto p-4 space-y-6 pb-24">
         {error && <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 text-sm">{error}</div>}
 
-        {/* 案件進度 */}
-        <section className="bg-white rounded-2xl p-4 shadow-sm space-y-3">
-          <h2 className="font-semibold text-gray-800 text-sm">案件進度</h2>
-          <div className="overflow-x-auto -mx-1 px-1">
-            <div className="flex gap-1.5 min-w-max">
-              {CASE_STAGES.map((stage, idx) => (
-                <button
-                  key={stage}
-                  type="button"
-                  onClick={() => setCaseStage(stage)}
-                  className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors ${
-                    caseStage === stage
-                      ? 'bg-amber-600 text-white border-amber-600'
-                      : CASE_STAGES.indexOf(caseStage as typeof CASE_STAGES[number]) > idx
-                      ? 'bg-amber-50 text-amber-600 border-amber-200'
-                      : 'bg-white text-gray-500 border-gray-200 hover:border-amber-300'
-                  }`}
-                >
-                  {idx + 1}. {stage}
-                </button>
-              ))}
-            </div>
-          </div>
-          {/* 拍照子進度：僅在「拍照」階段展開 */}
-          {caseStage === '拍照' && (
-            <div className="border-t pt-3">
-              <p className="text-xs text-gray-600 mb-2">已完成的拍照項目</p>
-              <div className="flex gap-3">
-                {(['主體照', '顯微照', '360'] as const).map(ps => (
-                  <label key={ps} className="flex items-center gap-1.5 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={photoStages.includes(ps)}
-                      onChange={() => togglePhotoStage(ps)}
-                      className="w-4 h-4 rounded accent-amber-600"
-                    />
-                    <span className={`text-sm ${photoStages.includes(ps) ? 'text-amber-700 font-medium' : 'text-gray-500'}`}>
-                      {ps}
-                    </span>
-                  </label>
-                ))}
-              </div>
-            </div>
-          )}
-        </section>
 
         {/* 收件照 */}
         <section className="bg-white rounded-2xl p-4 shadow-sm">

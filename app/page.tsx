@@ -727,9 +727,14 @@ export default function HomePage() {
                               {/* 快速編輯列 */}
                               {(() => {
                                 let intakePhoto: string | null = null
+                                let autoPhotoStages: string[] = []
                                 try {
                                   const ps = JSON.parse(intake.photos || '[]') as { category: string; path: string }[]
                                   intakePhoto = ps.find(p => p.category === '收件照')?.path ?? null
+                                  const catToStage: Record<string, string> = { '主體照': '主體', '顯微照': '顯微', '360照': '360' }
+                                  autoPhotoStages = Object.entries(catToStage)
+                                    .filter(([cat]) => ps.some(p => p.category === cat))
+                                    .map(([, stage]) => stage)
                                 } catch { /* noop */ }
                                 return (
                                   <div className="border border-gray-100 rounded-xl bg-gray-50 p-2.5">
@@ -762,14 +767,16 @@ export default function HomePage() {
                                           return (
                                             <div className="flex flex-wrap gap-1">
                                               {CASE_STAGES.map(stage => {
-                                                const done = completedStages.includes(stage)
+                                                const manuallyDone = completedStages.includes(stage)
+                                                const autoDone = autoPhotoStages.includes(stage)
+                                                const done = manuallyDone || autoDone
                                                 const isPR = pendingRemove?.id === intake.id && pendingRemove?.stage === stage
                                                 return (
                                                   <button
                                                     key={stage}
                                                     type="button"
                                                     onClick={() => {
-                                                      if (!done) {
+                                                      if (!manuallyDone) {
                                                         quickPatch(intake.id, { completedStages: [...completedStages, stage] })
                                                       } else if (isPR) {
                                                         quickPatch(intake.id, { completedStages: completedStages.filter(s => s !== stage) })
@@ -785,7 +792,9 @@ export default function HomePage() {
                                                       isPR
                                                         ? 'bg-red-50 text-red-600 border-red-300'
                                                         : done
-                                                        ? 'bg-amber-600 text-white border-amber-600 hover:bg-amber-700'
+                                                        ? autoDone && !manuallyDone
+                                                          ? 'bg-amber-200 text-amber-800 border-amber-300 hover:bg-amber-300'
+                                                          : 'bg-amber-600 text-white border-amber-600 hover:bg-amber-700'
                                                         : 'bg-white text-gray-400 border-gray-200 hover:border-amber-300 hover:text-amber-600'
                                                     }`}
                                                   >

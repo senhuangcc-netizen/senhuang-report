@@ -140,50 +140,6 @@ export default function IntakePreviewPage() {
           </div>
         </section>
 
-        {/* 案件進度 */}
-        {intake.case_stage && (
-          <section className="bg-white rounded-2xl p-4 shadow-sm space-y-3">
-            <h3 className="font-semibold text-gray-800 text-sm">案件進度</h3>
-            <div className="overflow-x-auto -mx-1 px-1">
-              <div className="flex gap-1.5 min-w-max">
-                {CASE_STAGES.map((stage, idx) => {
-                  const currentIdx = CASE_STAGES.indexOf(intake.case_stage as typeof CASE_STAGES[number])
-                  return (
-                    <span
-                      key={stage}
-                      className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-medium border ${
-                        stage === intake.case_stage
-                          ? 'bg-amber-600 text-white border-amber-600'
-                          : currentIdx > idx
-                          ? 'bg-amber-50 text-amber-600 border-amber-200'
-                          : 'bg-white text-gray-400 border-gray-100'
-                      }`}
-                    >
-                      {idx + 1}. {stage}
-                    </span>
-                  )
-                })}
-              </div>
-            </div>
-            {/* 拍照子進度 */}
-            {(() => {
-              let ps: string[] = []
-              try { ps = JSON.parse(intake.photo_stages || '[]') } catch { /* noop */ }
-              if (ps.length === 0) return null
-              return (
-                <div className="border-t pt-3 flex gap-3">
-                  {(['主體照', '顯微照', '360'] as const).map(s => (
-                    <span key={s} className={`text-xs px-2 py-1 rounded-lg border ${
-                      ps.includes(s) ? 'bg-amber-50 text-amber-700 border-amber-200' : 'text-gray-300 border-gray-100'
-                    }`}>
-                      {ps.includes(s) ? '✓ ' : ''}{s}
-                    </span>
-                  ))}
-                </div>
-              )
-            })()}
-          </section>
-        )}
 
         {/* 基本資料 */}
         <section className="bg-white rounded-2xl p-4 shadow-sm">

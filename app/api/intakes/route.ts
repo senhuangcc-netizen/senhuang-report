@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
       ${body.pdfPath || null},
       ${body.operator},
       'draft',
-      ${body.caseStage || '收件'},
+      ${JSON.stringify(['收件'])},
       ${body.inspectionUnit || null},
       ${JSON.stringify(body.photoStages || [])}
     ) RETURNING id
