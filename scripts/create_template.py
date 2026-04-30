@@ -16,12 +16,12 @@ FONT      = "PMingLiU"
 FONT_KAITI = "BiauKai"   # 標楷體，對應 DraftPreview 鑑定說明字型
 PT11 = Pt(11)
 
-# A4 可列印寬：21 - 2×2.54 = 15.92cm，比例 44/22/34
-COL1 = Cm(7.00)   # 44%
-COL2 = Cm(3.51)   # 22%
-COL3 = Cm(5.41)   # 34%
-ROW_PHOTO1 = Cm(7.28)   # 對應 HTML 275px
-ROW_PHOTO2 = Cm(6.75)   # 對應 HTML 255px
+# 欄寬對應 Google Doc 正確版本（單位 pt：233.2 / 116.7 / 112.2）
+COL1 = Cm(8.23)   # 50.5%  主體照 / 材質 / 說明
+COL2 = Cm(4.12)   # 25.2%
+COL3 = Cm(3.96)   # 24.3%  重量 / 備註 (獨立單格)
+ROW_PHOTO1 = Cm(7.00)   # 主體照 / XRF 列
+ROW_PHOTO2 = Cm(6.70)   # 顯微照列
 
 
 def set_row_height(row, height):
@@ -213,7 +213,7 @@ run(p_f, 'TEL: +8862-82602664  ｜  Web: www.senhuang.org  ｜  Email: info@senh
     size=Pt(9), color=RGBColor(0x88, 0x88, 0x88))
 
 # 修正欄寬（必須在所有 merge 完成後呼叫）
-fix_table_col_widths(table, [7.00, 3.51, 5.41])
+fix_table_col_widths(table, [8.23, 4.12, 3.96])
 
 doc.save(str(OUT))
 print(f"✓ 模板已生成：{OUT}")

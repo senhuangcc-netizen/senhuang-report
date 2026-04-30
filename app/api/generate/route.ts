@@ -105,13 +105,13 @@ async function saveDocx(buffer: Buffer, filename: string): Promise<string> {
   return `/api/files/${relativePath}`
 }
 
-// 尺寸對應 DraftPreview HTML：col1=44%=7.00cm=265px，col2+3=56%=8.92cm=337px
-// row1 高 7.28cm=275px，row2 高 6.75cm=255px（@96dpi）
+// 欄寬對應 Google Doc：col1=8.23cm=311px，col2+3=8.08cm=305px
+// row1 高 7.00cm=265px，row2 高 6.70cm=253px（@96dpi）
 const IMAGE_SIZES: Record<string, [number, number]> = {
-  photo_front:  [265, 275],
-  photo_xrf:    [337, 275],
-  photo_micro1: [265, 255],
-  photo_micro2: [337, 255],
+  photo_front:  [311, 265],
+  photo_xrf:    [305, 265],
+  photo_micro1: [311, 253],
+  photo_micro2: [305, 253],
 }
 
 export async function POST(req: NextRequest) {
