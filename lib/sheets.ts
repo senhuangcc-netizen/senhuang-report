@@ -6,6 +6,7 @@ const CARD_SHEET_ID = '1gfrwOfTNGh27LlN4Qh032eVN84rtGJGdcXKXEV3DYO0'
 // ── 報告總表同步 ──────────────────────────────────────────────
 
 const REPORT_HEADERS = [
+  'DB編號',
   '資料夾名稱', '品項代碼', '標籤碼',
   '鑑定卡號', '卡狀態', '建檔類型', '鑑定結果', '尺寸', '重量',
   '送驗日期', '報告日期', '備註', '形制資料', '真品預設',
@@ -108,6 +109,7 @@ async function ensureSheet(title: string): Promise<number> {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function intakeToRow(intake: Record<string, any>): string[] {
   return [
+    String(intake.id ?? ''),
     String(intake.folder_name ?? ''),
     String(intake.item_code ?? ''),
     String(intake.barcode ?? ''),
@@ -196,6 +198,21 @@ async function syncToSheet(
 
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function bulkSyncIntakes(intakes: Record<string, any>[]) {
+  if (!process.env.GOOGLE_SERVICE_ACCOUNT_KEY || !process.env.GOOGLE_SHEET_ID) return
+  const names = await getSheetNames()
+  const reportTab = names[0] ?? 'Sheet1'
+  await ensureSheet(reportTab)
+
+  // 清除整個工作表所有資料
+  await sheetReq('POST', `/values/${encodeURIComponent(reportTab)}:clear`, {})
+
+  // 一次寫入：表頭 + 全部資料列
+  const values = [REPORT_HEADERS, ...intakes.map(intakeToRow)]
+  await sheetReq('PUT', `/values/${encodeURIComponent(reportTab)}!A1?valueInputOption=RAW`, { values })
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function syncIntake(intake: Record<string, any>) {
   if (!process.env.GOOGLE_SERVICE_ACCOUNT_KEY || !process.env.GOOGLE_SHEET_ID) {
     console.log('[sheets] skipped: env vars missing')
@@ -208,7 +225,7 @@ export async function syncIntake(intake: Record<string, any>) {
     const reportTab = names[0] ?? 'Sheet1'
     console.log('[sheets] tabs=', names, 'using=', reportTab)
 
-    await syncToSheet(reportTab, REPORT_HEADERS, String(intake.item_code ?? ''), intakeToRow(intake), 'B:B')
+    await syncToSheet(reportTab, REPORT_HEADERS, String(intake.id ?? ''), intakeToRow(intake))
     console.log('[sheets] syncIntake done id=', intake.id)
   } catch (e) {
     console.error('[sheets] syncIntake error:', e)

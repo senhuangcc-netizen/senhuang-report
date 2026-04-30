@@ -12,7 +12,7 @@ export interface PhotoItem {
 
 interface Props {
   photos: PhotoItem[]
-  onChange: (photos: PhotoItem[]) => void
+  onChange: (photos: PhotoItem[] | ((prev: PhotoItem[]) => PhotoItem[])) => void
   folderName?: string
 }
 
@@ -45,8 +45,8 @@ export default function PhotoUpload({ photos, onChange, folderName }: Props) {
         }
       }
     }
-    onChange([...photos, ...newPhotos])
-  }, [photos, onChange, folderName])
+    onChange(prev => [...prev, ...newPhotos])
+  }, [onChange, folderName])
 
   const categoryPhotos = photos.filter(p => p.category === activeTab)
 
@@ -95,7 +95,7 @@ export default function PhotoUpload({ photos, onChange, folderName }: Props) {
       {categoryPhotos.length > 0 && (
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
           {categoryPhotos.map((p, i) => (
-            <div key={i} className="relative group aspect-square">
+            <div key={p.savedPath || p.preview || i} className="relative group aspect-square">
               <img src={p.preview} alt="" className="w-full h-full object-cover rounded-lg" />
               {p.uploaded && <div className="absolute top-1 right-1 bg-green-500 rounded-full w-3 h-3" title="已儲存" />}
               <button

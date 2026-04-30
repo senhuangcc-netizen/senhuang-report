@@ -6,6 +6,7 @@ interface Intake {
   id: number
   customer_name: string
   item_code: string
+  card_number?: string
   building_type?: string
   appraisal_result?: string
   size?: string
@@ -342,6 +343,127 @@ function ScaledA4Wrapper({ children }: { children: React.ReactNode }) {
   )
 }
 
+const WP_FILL_URL = 'https://www.senhuang.org/wp-admin/admin.php?page=senhuang-admin-page.php&new_record=add'
+
+function DraggableBookmarklet({ code }: { code: string }) {
+  const linkRef = useRef<HTMLAnchorElement>(null)
+  useEffect(() => {
+    if (linkRef.current) linkRef.current.setAttribute('href', code)
+  }, [code])
+  return (
+    <a ref={linkRef} draggable
+      className="inline-block bg-amber-500 hover:bg-amber-600 text-white font-bold px-5 py-2.5 rounded-lg text-sm cursor-grab select-none"
+      onClick={e => e.preventDefault()}>
+      🔖 森煌填表助手
+    </a>
+  )
+}
+
+// 書籤腳本（靜態，安裝一次）
+const BOOKMARKLET = `javascript:(function(){const h=location.hash.slice(1);if(!h.startsWith('autofill='))return alert('請先從建單系統點「填表到官網」');try{const d=JSON.parse(decodeURIComponent(h.slice(9)));const s=(n,v)=>{const e=document.querySelector('[name="'+n+'"]');if(e){e.value=v||'';e.dispatchEvent(new Event('input',{bubbles:true}));e.dispatchEvent(new Event('change',{bubbles:true}));}};s('card_number',d.n);s('card_type',d.t);s('card_date',d.d);s('card_size',d.s);s('card_weight',d.w);s('card_note',d.no);s('card_material',d.m);s('card_category',d.c);s('card_result',d.r);s('report_number',d.rn);s('card_input_person',d.p);const ph=d.ph||[];if(ph.length){const box=document.createElement('div');box.style.cssText='position:fixed;bottom:20px;right:20px;z-index:99999;background:#fff;border:2px solid #f59e0b;border-radius:12px;padding:12px 16px;box-shadow:0 4px 20px rgba(0,0,0,.2);font-family:sans-serif;font-size:13px;min-width:200px';box.innerHTML='<div style="font-weight:bold;margin-bottom:8px;color:#92400e">📷 照片連結（右鍵另存）</div>'+ph.map((u,i)=>'<div style="margin:4px 0"><a href="'+u+'" target="_blank" style="color:#d97706;text-decoration:underline">照片 '+(i+1)+'：開啟另存</a></div>').join('')+'<div style="margin-top:8px;text-align:right"><button onclick="this.parentNode.remove()" style="font-size:11px;color:#999;cursor:pointer;border:none;background:none">關閉</button></div>';document.body.appendChild(box);}else{alert('✅ 填表完成！請手動上傳照片後按 Save');}}catch(e){alert('填表失敗：'+e);}})();`
+
+function WpFillModal({ intake, onClose }: { intake: Intake; onClose: () => void }) {
+  const [step, setStep] = useState<'setup' | 'ready'>(() =>
+    typeof localStorage !== 'undefined' && localStorage.getItem('wp_bookmarklet_installed') === '1' ? 'ready' : 'setup'
+  )
+
+  let cd: CD = {}
+  try { cd = JSON.parse(intake.category_data || '{}') } catch { /* noop */ }
+
+  let photos: Photo[] = []
+  try { photos = JSON.parse(intake.photos || '[]') } catch { /* noop */ }
+  const BASE = 'https://senhuang-report-production.up.railway.app'
+  const toAbs = (p: string) => p.startsWith('http') ? p : BASE + p
+  const photoFront  = photos.find(p => p.category === '主體照')
+  const photoMicros = photos.filter(p => p.category === '顯微照')
+
+  const data = {
+    n: intake.card_number || '',
+    t: intake.building_type || '',
+    d: intake.submission_date ? intake.submission_date.slice(0, 10) : '',
+    s: intake.size ? (/[a-zA-Z]/.test(intake.size) ? intake.size : intake.size + 'mm') : '',
+    w: intake.weight ? (/[a-zA-Z]/.test(intake.weight) ? intake.weight : intake.weight + 'g') : '',
+    no: intake.note || '',
+    m: materialField(cd),
+    c: categoryField(cd),
+    r: intake.appraisal_result || '',
+    rn: intake.item_code || '',
+    p: intake.operator || '',
+    ph: [
+      photoFront  ? toAbs(photoFront.path)  : '',
+      ...photoMicros.slice(0, 2).map(p => toAbs(p.path)),
+    ].filter(Boolean),
+  }
+
+  const hash = 'autofill=' + encodeURIComponent(JSON.stringify(data))
+  const wpUrl = `${WP_FILL_URL}#${hash}`
+
+  const markInstalled = () => {
+    localStorage.setItem('wp_bookmarklet_installed', '1')
+    setStep('ready')
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-bold text-gray-900">填表到官網後台</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
+        </div>
+
+        {step === 'setup' ? (
+          <>
+            <p className="text-sm text-gray-600 mb-4">首次使用需安裝書籤腳本（一次即可）：</p>
+            <ol className="text-sm text-gray-700 space-y-3 mb-5">
+              <li className="flex gap-2">
+                <span className="flex-shrink-0 w-5 h-5 bg-amber-500 text-white rounded-full text-xs flex items-center justify-center font-bold">1</span>
+                <span>確認書籤列已顯示（<kbd className="bg-gray-100 px-1 rounded text-xs">⌘+Shift+B</kbd>）</span>
+              </li>
+              <li className="flex gap-2">
+                <span className="flex-shrink-0 w-5 h-5 bg-amber-500 text-white rounded-full text-xs flex items-center justify-center font-bold">2</span>
+                <span>將下方按鈕<strong>拖曳到書籤列</strong></span>
+              </li>
+            </ol>
+            <div className="flex justify-center mb-5">
+              <DraggableBookmarklet code={BOOKMARKLET} />
+            </div>
+            <button onClick={markInstalled}
+              className="w-full text-sm text-gray-500 underline hover:text-gray-700">
+              已安裝完成，繼續下一步 →
+            </button>
+          </>
+        ) : (
+          <>
+            <p className="text-sm text-gray-600 mb-4">資料已備好，請按照步驟操作：</p>
+            <ol className="text-sm text-gray-700 space-y-3 mb-5">
+              <li className="flex gap-2">
+                <span className="flex-shrink-0 w-5 h-5 bg-amber-500 text-white rounded-full text-xs flex items-center justify-center font-bold">1</span>
+                <span>點下方按鈕開啟官網後台填表頁</span>
+              </li>
+              <li className="flex gap-2">
+                <span className="flex-shrink-0 w-5 h-5 bg-amber-500 text-white rounded-full text-xs flex items-center justify-center font-bold">2</span>
+                <span>在後台頁面點書籤列的「森煌填表助手」</span>
+              </li>
+              <li className="flex gap-2">
+                <span className="flex-shrink-0 w-5 h-5 bg-amber-500 text-white rounded-full text-xs flex items-center justify-center font-bold">3</span>
+                <span>確認欄位後手動上傳照片，再按 Save</span>
+              </li>
+            </ol>
+            <a href={wpUrl} target="_blank" rel="noopener noreferrer"
+              className="block w-full text-center bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 rounded-lg text-sm mb-3">
+              開啟官網後台填表頁 →
+            </a>
+            <button onClick={() => setStep('setup')}
+              className="w-full text-xs text-gray-400 hover:text-gray-600 underline">
+              重新安裝書籤腳本
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── 主頁面 ──
 export default function ReportPreviewPage() {
   const router = useRouter()
@@ -353,6 +475,7 @@ export default function ReportPreviewPage() {
   const [cropping, setCropping] = useState(false)
   const [generating, setGenerating] = useState(false)
   const [genError, setGenError] = useState('')
+  const [showWpModal, setShowWpModal] = useState(false)
 
   useEffect(() => {
     fetch(`/api/intakes/${id}`)
@@ -477,6 +600,10 @@ export default function ReportPreviewPage() {
                 下載 .docx
               </a>
             )}
+            <button onClick={() => setShowWpModal(true)}
+              className="px-3 py-1.5 text-sm border border-amber-400 text-amber-700 rounded-lg hover:bg-amber-50 font-medium">
+              填表到官網
+            </button>
             <button onClick={() => window.print()}
               className="px-3 py-1.5 text-sm border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
               列印
@@ -515,6 +642,10 @@ export default function ReportPreviewPage() {
             此為草稿預覽。送出建單後點「生成報告」即可產出正式 Word 文件，預覽將自動切換為完整版面。
           </p>
         </>
+      )}
+
+      {showWpModal && intake && (
+        <WpFillModal intake={intake} onClose={() => setShowWpModal(false)} />
       )}
     </div>
   )

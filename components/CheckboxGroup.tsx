@@ -9,12 +9,15 @@ interface Props {
   allowCustom?: boolean
   onDeleteOption?: (v: string) => void
   onAddPermanent?: (v: string) => void
+  onReorder?: (newOptions: string[]) => void
 }
 
-export default function CheckboxGroup({ label, options, values, onChange, onDeleteOption, onAddPermanent }: Props) {
+export default function CheckboxGroup({ label, options, values, onChange, onDeleteOption, onAddPermanent, onReorder }: Props) {
   const [pendingDelete, setPendingDelete] = useState<string | null>(null)
   const [addInput, setAddInput] = useState('')
+  const [dragOver, setDragOver] = useState<string | null>(null)
   const pendingTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const dragItem = useRef<string | null>(null)
 
   const toggle = (opt: string) =>
     onChange(values.includes(opt) ? values.filter(v => v !== opt) : [...values, opt])
@@ -41,14 +44,49 @@ export default function CheckboxGroup({ label, options, values, onChange, onDele
     setAddInput('')
   }
 
+  const handleDragStart = (opt: string) => { dragItem.current = opt }
+
+  const handleDragOver = (e: React.DragEvent, opt: string) => {
+    e.preventDefault()
+    setDragOver(opt)
+  }
+
+  const handleDrop = (e: React.DragEvent, targetOpt: string) => {
+    e.preventDefault()
+    const source = dragItem.current
+    if (!source || source === targetOpt || !onReorder) { setDragOver(null); return }
+    const next = [...options]
+    const si = next.indexOf(source)
+    const ti = next.indexOf(targetOpt)
+    next.splice(si, 1)
+    next.splice(ti, 0, source)
+    onReorder(next)
+    dragItem.current = null
+    setDragOver(null)
+  }
+
+  const handleDragEnd = () => { dragItem.current = null; setDragOver(null) }
+
   return (
     <div>
       <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
       <div className="border border-gray-100 rounded-lg p-2 bg-gray-50 space-y-0.5 max-h-52 overflow-y-auto">
         {options.map(opt => {
           const isPending = pendingDelete === opt
+          const isOver = dragOver === opt
           return (
-            <div key={opt} className="flex items-center gap-1 hover:bg-white rounded px-1 group">
+            <div
+              key={opt}
+              draggable={!!onReorder}
+              onDragStart={() => handleDragStart(opt)}
+              onDragOver={e => handleDragOver(e, opt)}
+              onDrop={e => handleDrop(e, opt)}
+              onDragEnd={handleDragEnd}
+              className={`flex items-center gap-1 hover:bg-white rounded px-1 group transition-colors ${isOver ? 'bg-amber-50 border border-dashed border-amber-300' : ''}`}
+            >
+              {onReorder && (
+                <span className="shrink-0 text-gray-300 cursor-grab active:cursor-grabbing select-none px-0.5 text-xs" title="拖動排序">⠿</span>
+              )}
               <label className="flex items-start gap-2 cursor-pointer flex-1 py-1">
                 <input
                   type="checkbox"

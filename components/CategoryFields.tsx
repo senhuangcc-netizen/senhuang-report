@@ -13,14 +13,15 @@ interface Props {
 interface FieldOpts {
   custom: Record<string, string[]>   // user-added options
   hidden: Record<string, string[]>   // soft-deleted original options
+  order:  Record<string, string[]>   // user-reordered option lists
 }
 
 function loadFieldOpts(bt: string): FieldOpts {
   try {
     const raw = localStorage.getItem(`senhuang_field_opts_${bt}`)
     const parsed = raw ? JSON.parse(raw) : {}
-    return { custom: parsed.custom || {}, hidden: parsed.hidden || {} }
-  } catch { return { custom: {}, hidden: {} } }
+    return { custom: parsed.custom || {}, hidden: parsed.hidden || {}, order: parsed.order || {} }
+  } catch { return { custom: {}, hidden: {}, order: {} } }
 }
 
 function saveFieldOpts(bt: string, opts: FieldOpts) {
@@ -76,7 +77,7 @@ function buildDescFromABC(data: Record<string, unknown>, opts: Record<string, st
 
 export default function CategoryFields({ buildingType, data, onChange }: Props) {
   const opts = FORM_OPTIONS[buildingType]
-  const [fieldOpts, setFieldOpts] = useState<FieldOpts>({ custom: {}, hidden: {} })
+  const [fieldOpts, setFieldOpts] = useState<FieldOpts>({ custom: {}, hidden: {}, order: {} })
 
   useEffect(() => {
     setFieldOpts(loadFieldOpts(buildingType))
@@ -123,6 +124,10 @@ export default function CategoryFields({ buildingType, data, onChange }: Props) 
       const current = fieldOpts.custom[key] || []
       save({ ...fieldOpts, custom: { ...fieldOpts.custom, [key]: current.filter(v => v !== value) } })
     }
+  }
+
+  const reorderCheckboxOptions = (key: string, newOptions: string[]) => {
+    save({ ...fieldOpts, order: { ...fieldOpts.order, [key]: newOptions } })
   }
 
   if (!opts) return null
@@ -181,7 +186,11 @@ export default function CategoryFields({ buildingType, data, onChange }: Props) 
         {checkboxes.map(([key, baseOptions]) => {
           const hidden = fieldOpts.hidden[key] || []
           const extra  = fieldOpts.custom[key] || []
-          const visible = [...baseOptions.filter(o => !hidden.includes(o)), ...extra]
+          const unordered = [...baseOptions.filter(o => !hidden.includes(o)), ...extra]
+          const savedOrder = fieldOpts.order[key]
+          const visible = savedOrder
+            ? [...savedOrder.filter(o => unordered.includes(o)), ...unordered.filter(o => !savedOrder.includes(o))]
+            : unordered
           return (
             <div key={key}>
               <CheckboxGroup
@@ -191,6 +200,7 @@ export default function CategoryFields({ buildingType, data, onChange }: Props) 
                 onChange={v => update(key, v)}
                 onDeleteOption={v => deleteCheckboxOption(key, v, baseOptions)}
                 onAddPermanent={v => addCheckboxCustom(key, v)}
+                onReorder={newOpts => reorderCheckboxOptions(key, newOpts)}
               />
               {key === '材質' && (
                 <div className="mt-3 space-y-2">
