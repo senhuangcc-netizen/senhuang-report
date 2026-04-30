@@ -595,10 +595,16 @@ export default function ReportPreviewPage() {
               </button>
             )}
             {hasDocx && (
-              <a href={intake.report_path!} target="_blank" rel="noopener noreferrer"
-                className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">
-                下載 .docx
-              </a>
+              <>
+                <a href={intake.report_path!} target="_blank" rel="noopener noreferrer"
+                  className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">
+                  下載 .docx
+                </a>
+                <button onClick={generateReport} disabled={generating}
+                  className="px-3 py-1.5 text-sm border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 disabled:opacity-50">
+                  {generating ? '生成中...' : '重新生成'}
+                </button>
+              </>
             )}
             <button onClick={() => setShowWpModal(true)}
               className="px-3 py-1.5 text-sm border border-amber-400 text-amber-700 rounded-lg hover:bg-amber-50 font-medium">
