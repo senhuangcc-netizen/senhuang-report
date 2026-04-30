@@ -182,19 +182,18 @@ dp('東方森煌古物鑑定所檢驗報告', bold=True, size=Pt(13),
    align=WD_ALIGN_PARAGRAPH.CENTER, underline=True)
 dp('Asia SenHuang Authentication Analysis Report', bold=True, size=Pt(11),
    align=WD_ALIGN_PARAGRAPH.CENTER)
-dp_mixed('送驗編號 ', 'NO：{item_code}')
-dp_mixed('送檢日期 ', 'S Date：{submission_date}')
+dp('送驗編號 NO：{item_code}')
+dp('送檢日期 S Date：{submission_date}')
 
 # 報告日期置右
 p_rdate = doc.add_paragraph()
 p_rdate.alignment = WD_ALIGN_PARAGRAPH.RIGHT
 p_rdate.paragraph_format.space_before = Pt(1)
 p_rdate.paragraph_format.space_after  = Pt(2)
-run(p_rdate, '報告日期 ')
-run(p_rdate, 'R Date：{report_date}', color=GRAY)
+run(p_rdate, '報告日期 R Date：{report_date}')
 
-dp_mixed('顧客推估年代/形制 ', 'Presumed by customers：{presumed}')
-dp_mixed('送檢相關圖片 ', 'Item Pix：')
+dp('顧客推估年代/形制 Presumed by customers：{presumed}')
+dp('送檢相關圖片 Item Pix：')
 
 # ── 主表格 ──
 table = doc.add_table(rows=6, cols=3)
