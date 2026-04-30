@@ -165,16 +165,28 @@ def dp(text='', bold=False, size=None, align=WD_ALIGN_PARAGRAPH.LEFT,
     return p
 
 
-def dp_mixed(zh_text, en_text, bold=False, size=None, align=WD_ALIGN_PARAGRAPH.LEFT,
-             space_after=Pt(2)):
-    """中文黑色 + 英文灰色的混合段落"""
+def dp_label(parts, align=WD_ALIGN_PARAGRAPH.LEFT, space_after=Pt(2)):
+    """
+    parts: list of (text, gray) tuples.
+    冒號前英文 gray=True，其餘 gray=False。
+    """
     p = doc.add_paragraph()
     p.alignment = align
     p.paragraph_format.space_before = Pt(1)
     p.paragraph_format.space_after  = space_after
-    run(p, zh_text, bold=bold, size=size)
-    run(p, en_text, bold=bold, size=size, color=GRAY)
+    for text, gray in parts:
+        run(p, text, color=GRAY if gray else None)
     return p
+
+
+def add_right_tab(para, pos_cm):
+    pPr = para._p.get_or_add_pPr()
+    tabs = OxmlElement('w:tabs')
+    tab = OxmlElement('w:tab')
+    tab.set(qn('w:val'), 'right')
+    tab.set(qn('w:pos'), str(int(pos_cm / 2.54 * 1440)))
+    tabs.append(tab)
+    pPr.append(tabs)
 
 
 # ── 標題 ──
@@ -182,18 +194,25 @@ dp('東方森煌古物鑑定所檢驗報告', bold=True, size=Pt(13),
    align=WD_ALIGN_PARAGRAPH.CENTER, underline=True)
 dp('Asia SenHuang Authentication Analysis Report', bold=True, size=Pt(11),
    align=WD_ALIGN_PARAGRAPH.CENTER)
-dp('送驗編號 NO：{item_code}')
-dp('送檢日期 S Date：{submission_date}')
 
-# 報告日期置右
-p_rdate = doc.add_paragraph()
-p_rdate.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-p_rdate.paragraph_format.space_before = Pt(1)
-p_rdate.paragraph_format.space_after  = Pt(2)
-run(p_rdate, '報告日期 R Date：{report_date}')
+dp_label([('送驗編號 ', False), ('NO', True), ('：{item_code}', False)])
 
-dp('顧客推估年代/形制 Presumed by customers：{presumed}')
-dp('送檢相關圖片 Item Pix：')
+# 送檢日期（左）與報告日期（右）同一行，以右對齊 tab 分隔
+p_dates = doc.add_paragraph()
+p_dates.alignment = WD_ALIGN_PARAGRAPH.LEFT
+p_dates.paragraph_format.space_before = Pt(1)
+p_dates.paragraph_format.space_after  = Pt(2)
+add_right_tab(p_dates, 15.92)   # 頁面內容寬度 21-2*2.54=15.92cm
+run(p_dates, '送檢日期 ')
+run(p_dates, 'S Date', color=GRAY)
+run(p_dates, '：{submission_date}')
+run(p_dates, '\t')
+run(p_dates, '報告日期 ')
+run(p_dates, 'R Date', color=GRAY)
+run(p_dates, '：{report_date}')
+
+dp_label([('顧客推估年代/形制 ', False), ('Presumed by customers', True), ('：{presumed}', False)])
+dp_label([('送檢相關圖片 ', False), ('Item Pix', True), ('：', False)])
 
 # ── 主表格 ──
 table = doc.add_table(rows=6, cols=3)
