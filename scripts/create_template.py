@@ -205,13 +205,13 @@ p_dates.alignment = WD_ALIGN_PARAGRAPH.LEFT
 p_dates.paragraph_format.space_before = Pt(1)
 p_dates.paragraph_format.space_after  = Pt(2)
 add_right_tab(p_dates, 15.92)   # 頁面內容寬度 21-2*2.54=15.92cm
-run(p_dates, '報告日期 ')
-run(p_dates, 'R Date', color=GRAY)
-run(p_dates, '：{report_date}')
-run(p_dates, '\t')
 run(p_dates, '送檢日期 ')
 run(p_dates, 'S Date', color=GRAY)
 run(p_dates, '：{submission_date}')
+run(p_dates, '\t')
+run(p_dates, '報告日期 ')
+run(p_dates, 'R Date', color=GRAY)
+run(p_dates, '：{report_date}')
 
 dp_label([('顧客推估年代/形制 ', False), ('Presumed by customers', True), ('：{presumed}', False)])
 dp_label([('送檢相關圖片 ', False), ('Item Pix', True), ('：', False)])
