@@ -120,15 +120,17 @@ def cell_label_value(cell, zh_label, en_label, value_tag='', bold_label=False, v
     cell.vertical_alignment = WD_ALIGN_VERTICAL.TOP
 
 
-def cell_text(cell, label, value_tag='', bold_label=False, center=False, value_font=None):
+def cell_text(cell, zh_label, value_tag='', bold_label=False, center=False, value_font=None, en_label=''):
     cell.paragraphs[0].clear()
     p = cell.paragraphs[0]
     if center:
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
     p.paragraph_format.space_before = Pt(2)
     p.paragraph_format.space_after = Pt(2)
-    if label:
-        run(p, label, bold=bold_label)
+    if zh_label:
+        run(p, zh_label, bold=bold_label)
+    if en_label:
+        run(p, en_label, bold=bold_label, color=GRAY)
     if value_tag:
         run(p, value_tag, font=value_font)
     cell.vertical_alignment = WD_ALIGN_VERTICAL.TOP
@@ -246,13 +248,13 @@ cell_label_value(table.rows[3].cells[1], '形制', ' Category：', '{category}')
 # Row 4：鑑定說明（全合併），說明文字用標楷體
 table.rows[4].cells[0].merge(table.rows[4].cells[1])
 table.rows[4].cells[0].merge(table.rows[4].cells[2])
-cell_text(table.rows[4].cells[0], '鑑定說明 Description：\n', '{description}',
-          value_font=FONT_KAITI)
+cell_text(table.rows[4].cells[0], '鑑定說明', '{description}',
+          en_label=' Description：\n', value_font=FONT_KAITI)
 
 # Row 5：鑑定結果（col1+2 合併）| 備註
 table.rows[5].cells[0].merge(table.rows[5].cells[1])
-cell_text(table.rows[5].cells[0], '鑑定結果 Result：\n', '{result}', bold_label=True)
-cell_text(table.rows[5].cells[2], '備註 Note：\n', '{note}')
+cell_text(table.rows[5].cells[0], '鑑定結果', '{result}', bold_label=True, en_label=' Result：\n')
+cell_text(table.rows[5].cells[2], '備註', '{note}', en_label=' Note：\n')
 
 # ── 頁腳 ──
 p_f = dp(space_after=Pt(0))
