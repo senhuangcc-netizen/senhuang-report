@@ -46,6 +46,49 @@ def set_cell_margins_zero(cell):
     tcPr.append(tcMar)
 
 
+def fix_table_col_widths(table, widths_cm):
+    """
+    直接覆寫 w:tblGrid（Word 以此為準）及每個 cell 的 w:tcW。
+    python-docx cell.width= 只改 tcW、不改 tblGrid，所以 Word 仍用等分預設值。
+    """
+    widths_tw = [int(w / 2.54 * 1440) for w in widths_cm]   # cm → twips
+    tbl = table._tbl
+
+    # 替換 tblGrid
+    old = tbl.find(qn('w:tblGrid'))
+    if old is not None:
+        tbl.remove(old)
+    tblGrid = OxmlElement('w:tblGrid')
+    for w in widths_tw:
+        gc = OxmlElement('w:gridCol')
+        gc.set(qn('w:w'), str(w))
+        tblGrid.append(gc)
+    tblPr = tbl.find(qn('w:tblPr'))
+    if tblPr is not None:
+        tblPr.addnext(tblGrid)
+    else:
+        tbl.insert(0, tblGrid)
+
+    # 更新每個 tc 的 tcW（考慮 gridSpan）
+    for row in table.rows:
+        col = 0
+        for tc in row._tr.findall(qn('w:tc')):
+            tcPr = tc.find(qn('w:tcPr'))
+            if tcPr is None:
+                tcPr = OxmlElement('w:tcPr')
+                tc.insert(0, tcPr)
+            gs_el = tcPr.find(qn('w:gridSpan'))
+            span = int(gs_el.get(qn('w:val'), 1)) if gs_el is not None else 1
+            cell_w = sum(widths_tw[col:col + span])
+            col += span
+            for ex in tcPr.findall(qn('w:tcW')):
+                tcPr.remove(ex)
+            tcW = OxmlElement('w:tcW')
+            tcW.set(qn('w:w'), str(cell_w))
+            tcW.set(qn('w:type'), 'dxa')
+            tcPr.append(tcW)
+
+
 def run(para, text, bold=False, size=None, color=None, italic=False, font=None):
     r = para.add_run(text)
     f = font or FONT
@@ -168,6 +211,9 @@ pPr.append(pBdr)
 p_f.paragraph_format.space_before = Pt(6)
 run(p_f, 'TEL: +8862-82602664  ｜  Web: www.senhuang.org  ｜  Email: info@senhuang.org',
     size=Pt(9), color=RGBColor(0x88, 0x88, 0x88))
+
+# 修正欄寬（必須在所有 merge 完成後呼叫）
+fix_table_col_widths(table, [7.00, 3.51, 5.41])
 
 doc.save(str(OUT))
 print(f"✓ 模板已生成：{OUT}")
