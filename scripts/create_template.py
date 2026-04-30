@@ -1,7 +1,7 @@
 """
 生成 base.docx 模板（純文字版，docxtemplater 格式）
 執行：python3 scripts/create_template.py
-欄寬比例與 DraftPreview HTML 一致：44% / 22% / 34%
+欄寬對應 Google Doc 正確版本：50.5% / 25.2% / 24.3%
 """
 from pathlib import Path
 from docx import Document
@@ -13,15 +13,16 @@ from docx.oxml import OxmlElement
 
 OUT = Path(__file__).parent.parent / "templates" / "base.docx"
 FONT      = "PMingLiU"
-FONT_KAITI = "BiauKai"   # 標楷體，對應 DraftPreview 鑑定說明字型
+FONT_KAITI = "BiauKai"
 PT11 = Pt(11)
+GRAY = RGBColor(0xaa, 0xaa, 0xaa)
 
 # 欄寬對應 Google Doc 正確版本（單位 pt：233.2 / 116.7 / 112.2）
 COL1 = Cm(8.23)   # 50.5%  主體照 / 材質 / 說明
 COL2 = Cm(4.12)   # 25.2%
 COL3 = Cm(3.96)   # 24.3%  重量 / 備註 (獨立單格)
-ROW_PHOTO1 = Cm(7.00)   # 主體照 / XRF 列
-ROW_PHOTO2 = Cm(6.70)   # 顯微照列
+ROW_PHOTO1 = Cm(7.00)
+ROW_PHOTO2 = Cm(6.70)
 
 
 def set_row_height(row, height):
@@ -51,10 +52,9 @@ def fix_table_col_widths(table, widths_cm):
     直接覆寫 w:tblGrid（Word 以此為準）及每個 cell 的 w:tcW。
     python-docx cell.width= 只改 tcW、不改 tblGrid，所以 Word 仍用等分預設值。
     """
-    widths_tw = [int(w / 2.54 * 1440) for w in widths_cm]   # cm → twips
+    widths_tw = [int(w / 2.54 * 1440) for w in widths_cm]
     tbl = table._tbl
 
-    # 替換 tblGrid
     old = tbl.find(qn('w:tblGrid'))
     if old is not None:
         tbl.remove(old)
@@ -69,7 +69,6 @@ def fix_table_col_widths(table, widths_cm):
     else:
         tbl.insert(0, tblGrid)
 
-    # 更新每個 tc 的 tcW（考慮 gridSpan）
     for row in table.rows:
         col = 0
         for tc in row._tr.findall(qn('w:tc')):
@@ -102,6 +101,25 @@ def run(para, text, bold=False, size=None, color=None, italic=False, font=None):
     return r
 
 
+def cell_label_value(cell, zh_label, en_label, value_tag='', bold_label=False, value_font=None):
+    """標題置左（中文黑色 + 英文灰色），內文置中獨立段落"""
+    cell.paragraphs[0].clear()
+    p1 = cell.paragraphs[0]
+    p1.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    p1.paragraph_format.space_before = Pt(2)
+    p1.paragraph_format.space_after = Pt(1)
+    run(p1, zh_label, bold=bold_label)
+    run(p1, en_label, bold=bold_label, color=GRAY)
+
+    p2 = cell.add_paragraph()
+    p2.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p2.paragraph_format.space_before = Pt(1)
+    p2.paragraph_format.space_after = Pt(2)
+    if value_tag:
+        run(p2, value_tag, font=value_font)
+    cell.vertical_alignment = WD_ALIGN_VERTICAL.TOP
+
+
 def cell_text(cell, label, value_tag='', bold_label=False, center=False, value_font=None):
     cell.paragraphs[0].clear()
     p = cell.paragraphs[0]
@@ -119,7 +137,7 @@ def cell_text(cell, label, value_tag='', bold_label=False, center=False, value_f
 def cell_photo(cell, tag):
     cell.paragraphs[0].clear()
     p = cell.paragraphs[0]
-    p.alignment = WD_ALIGN_PARAGRAPH.LEFT   # left = docxtemplater image inline 較穩定
+    p.alignment = WD_ALIGN_PARAGRAPH.LEFT
     p.paragraph_format.space_before = Pt(0)
     p.paragraph_format.space_after = Pt(0)
     run(p, tag)
@@ -147,15 +165,36 @@ def dp(text='', bold=False, size=None, align=WD_ALIGN_PARAGRAPH.LEFT,
     return p
 
 
+def dp_mixed(zh_text, en_text, bold=False, size=None, align=WD_ALIGN_PARAGRAPH.LEFT,
+             space_after=Pt(2)):
+    """中文黑色 + 英文灰色的混合段落"""
+    p = doc.add_paragraph()
+    p.alignment = align
+    p.paragraph_format.space_before = Pt(1)
+    p.paragraph_format.space_after  = space_after
+    run(p, zh_text, bold=bold, size=size)
+    run(p, en_text, bold=bold, size=size, color=GRAY)
+    return p
+
+
 # ── 標題 ──
 dp('東方森煌古物鑑定所檢驗報告', bold=True, size=Pt(13),
    align=WD_ALIGN_PARAGRAPH.CENTER, underline=True)
 dp('Asia SenHuang Authentication Analysis Report', bold=True, size=Pt(11),
    align=WD_ALIGN_PARAGRAPH.CENTER)
-dp('送驗編號 NO：{item_code}')
-dp('送檢日期 S Date：{submission_date}        報告日期 R Date：{report_date}')
-dp('顧客推估年代/形制 Presumed by customers：{presumed}')
-dp('送檢相關圖片 Item Pix：')
+dp_mixed('送驗編號 ', 'NO：{item_code}')
+dp_mixed('送檢日期 ', 'S Date：{submission_date}')
+
+# 報告日期置右
+p_rdate = doc.add_paragraph()
+p_rdate.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+p_rdate.paragraph_format.space_before = Pt(1)
+p_rdate.paragraph_format.space_after  = Pt(2)
+run(p_rdate, '報告日期 ')
+run(p_rdate, 'R Date：{report_date}', color=GRAY)
+
+dp_mixed('顧客推估年代/形制 ', 'Presumed by customers：{presumed}')
+dp_mixed('送檢相關圖片 ', 'Item Pix：')
 
 # ── 主表格 ──
 table = doc.add_table(rows=6, cols=3)
@@ -176,15 +215,15 @@ table.rows[1].cells[1].merge(table.rows[1].cells[2])
 cell_photo(table.rows[1].cells[0], '{%photo_micro1}')
 cell_photo(table.rows[1].cells[1], '{%photo_micro2}')
 
-# Row 2：尺寸（col1+2 合併）| 重量
+# Row 2：尺寸（col1+2 合併）| 重量（標題置左，內文置中）
 table.rows[2].cells[0].merge(table.rows[2].cells[1])
-cell_text(table.rows[2].cells[0], '尺寸 Size：\n', '{size}', center=True)
-cell_text(table.rows[2].cells[2], '重量 Weight：gram\n', '{weight}', center=True)
+cell_label_value(table.rows[2].cells[0], '尺寸', ' Size：', '{size}')
+cell_label_value(table.rows[2].cells[2], '重量', ' Weight：gram', '{weight}')
 
-# Row 3：材質 | 形制（col2+3 合併）
+# Row 3：材質 | 形制（col2+3 合併，標題置左，內文置中）
 table.rows[3].cells[1].merge(table.rows[3].cells[2])
-cell_text(table.rows[3].cells[0], '材質 Material：\n', '{material}', center=True)
-cell_text(table.rows[3].cells[1], '形制 Category：\n', '{category}')
+cell_label_value(table.rows[3].cells[0], '材質', ' Material：', '{material}')
+cell_label_value(table.rows[3].cells[1], '形制', ' Category：', '{category}')
 
 # Row 4：鑑定說明（全合併），說明文字用標楷體
 table.rows[4].cells[0].merge(table.rows[4].cells[1])
