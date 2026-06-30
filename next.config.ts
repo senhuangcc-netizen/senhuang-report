@@ -9,7 +9,7 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     staleTimes: {
-      static: 0,   // 禁用 client router cache，確保每次導回主頁都重新取資料
+      static: 30,   // 確保每次導回主頁都重新取資料 (Next.js 15+ 規定 static 最小值為 30)
       dynamic: 0,
     },
   },
